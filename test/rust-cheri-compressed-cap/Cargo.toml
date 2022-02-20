@@ -1,0 +1,13 @@
+[package]
+name = "rust-cheri-compressed-cap"
+version = "0.1.0"
+edition = "2018"
+build = "build.rs"
+links = "cheri_compressed_cap"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+[build-dependencies]
+# Add a c-compiler dependency so we can compile the compressed-cap library
+cc = { version = "1.0" }
