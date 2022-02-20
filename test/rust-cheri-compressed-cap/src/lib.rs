@@ -1,7 +1,10 @@
 use std::ops::{Add,Sub};
 
 /// Trait defining the public API for a specific capability type.
-/// Having a type X implementing CompressedCapability is equivalent to including `cheri_compressed_cap_X.h` in C.
+/// A type X implementing CompressedCapability is equivalent to the API provided by `cheri_compressed_cap_X.h` in C,
+/// where `ccx_cap_t` is equivalent to `CcxCap<X>`.
+/// 
+/// See README.md for description of trait functions
 pub trait CompressedCapability: Sized {
     /// ccx_length_t equivalent
     type Length: Default + Copy + Add + Sub + PartialEq;
@@ -11,6 +14,7 @@ pub trait CompressedCapability: Sized {
     type Addr: Default + Copy + Into<Self::Offset> + Into<Self::Length> + Add + Sub + PartialEq;
 
     /// CCX_PERM_GLOBAL equivalent
+    /// These are the same for 64 and 128bit, but should be overridden for Morello-128
     const PERM_GLOBAL: u32 = (1 << 0);
     const PERM_EXECUTE: u32 = (1 << 1);
     const PERM_LOAD: u32 = (1 << 2);
@@ -49,7 +53,7 @@ pub trait CompressedCapability: Sized {
     Updaters
     
     The C API updaters all use Self::Addr for the type of `value`. 
-    I've changed these to use the types from corresponding `get` functions
+    I've changed these to use the types from corresponding `get` functions.
     */
     fn update_uperms(cap: &mut CcxCap<Self>, value: u32);
     fn update_perms(cap: &mut CcxCap<Self>, value: u32);
@@ -80,8 +84,12 @@ pub struct CcxCap<T: CompressedCapability> {
     cr_exp: u8,
     cr_extra: u8,
 }
+/// Implements the C++-only member functions
 impl<T: CompressedCapability> CcxCap<T> 
-    // This is an annoyingly long where-clause which states (T::Offset - T::Offset) is of type T::Offset
+    // This is an annoyingly long where-clause which states (T::Offset - T::Offset) is of type T::Offset,
+    // and the same for T::Length.
+    // These are required because our member functions need to evaluate these subtractions,
+    // but Rust doesn't know what Offset or Length are ahead of time.
     where <T::Offset as Sub>::Output: Into<T::Offset>, 
             <T::Length as Sub>::Output: Into<T::Length> {
 
@@ -125,7 +133,7 @@ impl<T: CompressedCapability> CcxCap<T>
         T::get_flags(self)
     }
 }
-// Implements the operator== from cheri_compressed_cap_common.h
+/// Implements the `operator==` from cheri_compressed_cap_common.h
 impl<T: CompressedCapability> PartialEq for CcxCap<T> {
     fn eq(&self, other: &Self) -> bool {
         self.cr_tag == other.cr_tag && 
@@ -133,9 +141,16 @@ impl<T: CompressedCapability> PartialEq for CcxCap<T> {
         self.cr_pesbt == other.cr_pesbt
     }
 }
+/// Equivalent to initialization pattern used in tests
+/// ```ccx_cap_t value;
+/// memset(&value, 0, sizeof(value));```
+/// 
+/// cc64.rs didn't pick it up when it was automatically #[derive]-d, so it's manually implemented here
 impl<T: CompressedCapability> Default for CcxCap<T> {
     fn default() -> Self {
         CcxCap {
+            // Use Default::default for the associated types (Addr, Length, Offset)
+            // Rust doesn't have enough information to know they are numbers
             _cr_cursor: Default::default(),
             cr_pesbt: Default::default(),
             _cr_top: Default::default(),
@@ -158,7 +173,7 @@ pub struct CcxBoundsBits {
 
 // Include cc64 definitions
 mod cc64;
-// Export the CC64 instance of CompressedCapability
+// Export the CC64 instance of CompressedCapability, and the associated CcxCap type
 pub use cc64::{Cc64,Cc64Cap};
 
 #[cfg(test)]
