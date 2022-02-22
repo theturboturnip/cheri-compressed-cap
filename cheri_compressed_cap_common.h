@@ -38,6 +38,23 @@
 
 #include <stdbool.h>
 
+// If this imported in multiple files, functions should prefixed with `static inline`.
+// static = only visible to functions in the same "translation unit" (file) 
+// inline = a hint (usually ignored) for the compiler to inline the functions for performance.
+// It's important to define these as static, as otherwise the compiler would complain that the functions
+// are defined multiple times in the various C files that included this header.
+// See https://stackoverflow.com/a/7767858, https://en.cppreference.com/w/c/language/inline
+//
+// But if this is being included to generate a C library, we need to prefix the functions with `extern`.
+// extern = external linkage, i.e. all other code linked with this "translation unit" can see it and refer to it.
+// The _CCDEF macro expands to `static inline` by default, or `extern` if CC_EXPORT_FUNCS has been #defined.
+#undef _CCDEF
+#ifdef CC_EXPORT_FUNCS
+#define _CCDEF extern
+#else
+#define _CCDEF static inline
+#endif
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 enum {
@@ -111,11 +128,11 @@ _CC_STATIC_ASSERT(_CC_N(MAX_RESERVED_OTYPE) <= _CC_N(MAX_REPRESENTABLE_OTYPE), "
 
 // Forward-declare the accessors since we use them inside the struct body:
 struct _cc_N(cap);
-static inline uint8_t _cc_N(get_flags)(const struct _cc_N(cap)* cap);
-static inline uint32_t _cc_N(get_otype)(const struct _cc_N(cap)* cap);
-static inline uint32_t _cc_N(get_perms)(const struct _cc_N(cap)* cap);
-static inline uint8_t _cc_N(get_reserved)(const struct _cc_N(cap)* cap);
-static inline uint32_t _cc_N(get_uperms)(const struct _cc_N(cap)* cap);
+_CCDEF uint8_t _cc_N(get_flags)(const struct _cc_N(cap)* cap);
+_CCDEF uint32_t _cc_N(get_otype)(const struct _cc_N(cap)* cap);
+_CCDEF uint32_t _cc_N(get_perms)(const struct _cc_N(cap)* cap);
+_CCDEF uint8_t _cc_N(get_reserved)(const struct _cc_N(cap)* cap);
+_CCDEF uint32_t _cc_N(get_uperms)(const struct _cc_N(cap)* cap);
 
 // In order to allow vector loads and store from memory we can optionally reverse the first two fields.
 struct _cc_N(cap) {
@@ -161,12 +178,12 @@ struct _cc_N(cap) {
 typedef struct _cc_N(cap) _cc_N(cap_t);
 #define _cc_cap_t _cc_N(cap_t)
 
-static inline bool _cc_N(exactly_equal)(const _cc_cap_t* a, const _cc_cap_t* b) {
+_CCDEF bool _cc_N(exactly_equal)(const _cc_cap_t* a, const _cc_cap_t* b) {
     return a->cr_tag == b->cr_tag && a->_cr_cursor == b->_cr_cursor && a->cr_pesbt == b->cr_pesbt;
 }
 
 /* Returns the index of the most significant bit set in x */
-static inline uint32_t _cc_N(idx_MSNZ)(uint64_t x) {
+_CCDEF uint32_t _cc_N(idx_MSNZ)(uint64_t x) {
 #if defined(__GNUC__) && !defined(__clang__)
 #define CAP_HAVE_BUILTIN_CLZ
 #elif defined(__has_builtin)
@@ -194,14 +211,14 @@ static inline uint32_t _cc_N(idx_MSNZ)(uint64_t x) {
  * e = idxMSNZ( (rlength + (rlength >> 6)) >> 19 )
  * where (rlength + (rlength >> 6)) needs to be a 65 bit integer
  */
-static inline uint32_t _cc_N(compute_e)(_cc_addr_t rlength, uint32_t bwidth) {
+_CCDEF uint32_t _cc_N(compute_e)(_cc_addr_t rlength, uint32_t bwidth) {
     if (rlength < (1u << (bwidth - 1)))
         return 0;
 
     return (_cc_N(idx_MSNZ)(rlength) - (bwidth - 2));
 }
 
-static inline uint32_t _cc_N(get_exponent)(_cc_length_t length) {
+_CCDEF uint32_t _cc_N(get_exponent)(_cc_length_t length) {
     const uint32_t bwidth = _CC_MANTISSA_WIDTH;
     if (length > _CC_MAX_ADDR) {
         return _CC_LEN_WIDTH - (bwidth - 1);
@@ -210,16 +227,16 @@ static inline uint32_t _cc_N(get_exponent)(_cc_length_t length) {
     }
 }
 
-static inline uint64_t _cc_N(getbits)(uint64_t src, uint32_t start, uint32_t size) {
+_CCDEF uint64_t _cc_N(getbits)(uint64_t src, uint32_t start, uint32_t size) {
     return ((src >> start) & ((UINT64_C(1) << size) - UINT64_C(1)));
 }
 
 // truncates `value`, keeping only the _least_ significant `n` bits.
-static inline uint64_t _cc_N(truncate64)(uint64_t value, size_t n) { return value & ((UINT64_C(1) << n) - 1); }
+_CCDEF uint64_t _cc_N(truncate64)(uint64_t value, size_t n) { return value & ((UINT64_C(1) << n) - 1); }
 
 // truncates `value`, keeping only the _most_ significant `n` bits.
 #define TRUNCATE_LSB_FUNC(type_width)                                                                                  \
-    static inline uint64_t _CC_CONCAT(_cc_N(truncateLSB_), type_width)(uint64_t value, size_t n) {                     \
+    _CCDEF uint64_t _CC_CONCAT(_cc_N(truncateLSB_), type_width)(uint64_t value, size_t n) {                     \
         _CC_STATIC_ASSERT(type_width <= 64, "");                                                                       \
         return value >> (type_width - n);                                                                              \
     }
@@ -239,14 +256,14 @@ struct _cc_N(bounds_bits) {
 #define _cc_bounds_bits struct _cc_N(bounds_bits)
 
 #define ALL_WRAPPERS(X, FN, type)                                                                                      \
-    static inline _cc_addr_t _cc_N(cap_pesbt_extract_##FN)(_cc_addr_t pesbt) { return _CC_EXTRACT_FIELD(pesbt, X); }   \
-    static inline _cc_addr_t _cc_N(cap_pesbt_encode_##FN)(type value) { return _CC_ENCODE_FIELD(value, X); }           \
-    static inline _cc_addr_t _cc_N(cap_pesbt_deposit_##FN)(_cc_addr_t pesbt, type value) {                             \
+    _CCDEF _cc_addr_t _cc_N(cap_pesbt_extract_##FN)(_cc_addr_t pesbt) { return _CC_EXTRACT_FIELD(pesbt, X); }   \
+    _CCDEF _cc_addr_t _cc_N(cap_pesbt_encode_##FN)(type value) { return _CC_ENCODE_FIELD(value, X); }           \
+    _CCDEF _cc_addr_t _cc_N(cap_pesbt_deposit_##FN)(_cc_addr_t pesbt, type value) {                             \
         _cc_debug_assert(value <= _CC_N(FIELD_##X##_MAX_VALUE));                                                       \
         return (pesbt & ~_CC_N(FIELD_##X##_MASK64)) | _CC_ENCODE_FIELD(value, X);                                      \
     }                                                                                                                  \
-    static inline type _cc_N(get_##FN)(const _cc_cap_t* cap) { return _cc_N(cap_pesbt_extract_##FN)(cap->cr_pesbt); }  \
-    static inline void _cc_N(update_##FN)(_cc_cap_t * cap, _cc_addr_t value) {                                         \
+    _CCDEF type _cc_N(get_##FN)(const _cc_cap_t* cap) { return _cc_N(cap_pesbt_extract_##FN)(cap->cr_pesbt); }  \
+    _CCDEF void _cc_N(update_##FN)(_cc_cap_t * cap, _cc_addr_t value) {                                         \
         cap->cr_pesbt = _cc_N(cap_pesbt_deposit_##FN)(cap->cr_pesbt, value);                                           \
     }
 ALL_WRAPPERS(HWPERMS, perms, uint32_t)
@@ -257,7 +274,7 @@ ALL_WRAPPERS(RESERVED, reserved, uint8_t)
 #undef ALL_WRAPPERS
 
 /// Extract the bits used for bounds and infer the top two bits of T
-static inline _cc_bounds_bits _cc_N(extract_bounds_bits)(_cc_addr_t pesbt) {
+_CCDEF _cc_bounds_bits _cc_N(extract_bounds_bits)(_cc_addr_t pesbt) {
     _CC_STATIC_ASSERT(_CC_MANTISSA_WIDTH == _CC_N(BOT_WIDTH), "Wrong bot width?");
     uint32_t BWidth = _CC_MANTISSA_WIDTH;
     uint32_t BMask = (1u << BWidth) - 1;
@@ -312,7 +329,7 @@ static inline _cc_bounds_bits _cc_N(extract_bounds_bits)(_cc_addr_t pesbt) {
 }
 
 // Certain bit patterns can result in invalid bounds bits. These values must never be tagged!
-static inline bool _cc_N(bounds_bits_valid)(_cc_bounds_bits bounds) {
+_CCDEF bool _cc_N(bounds_bits_valid)(_cc_bounds_bits bounds) {
     // https://github.com/CTSRD-CHERI/sail-cheri-riscv/blob/7a308ef3661e43461c8431c391aaece7fba6e992/src/cheri_properties.sail#L104
     _cc_addr_t Bmsb = _cc_N(getbits)(bounds.B, _CC_MANTISSA_WIDTH - 1, 1);
     _cc_addr_t Bmsb2 = _cc_N(getbits)(bounds.B, _CC_MANTISSA_WIDTH - 2, 2);
@@ -326,7 +343,7 @@ static inline bool _cc_N(bounds_bits_valid)(_cc_bounds_bits bounds) {
     }
 }
 
-static inline bool _cc_N(compute_base_top)(_cc_bounds_bits bounds, _cc_addr_t cursor, _cc_addr_t* base_out,
+_CCDEF bool _cc_N(compute_base_top)(_cc_bounds_bits bounds, _cc_addr_t cursor, _cc_addr_t* base_out,
                                            _cc_length_t* top_out) {
 #ifdef CC_IS_MORELLO
     if (bounds.E > _CC_MAX_EXPONENT) {
@@ -419,7 +436,7 @@ static inline bool _cc_N(compute_base_top)(_cc_bounds_bits bounds, _cc_addr_t cu
     return true;
 }
 
-static inline void _cc_N(decompress_raw)(_cc_addr_t pesbt, _cc_addr_t cursor, bool tag, _cc_cap_t* cdp) {
+_CCDEF void _cc_N(decompress_raw)(_cc_addr_t pesbt, _cc_addr_t cursor, bool tag, _cc_cap_t* cdp) {
     cdp->cr_tag = tag;
     cdp->_cr_cursor = cursor;
     cdp->cr_pesbt = pesbt;
@@ -442,14 +459,14 @@ static inline void _cc_N(decompress_raw)(_cc_addr_t pesbt, _cc_addr_t cursor, bo
 /*
  * Decompress a 128-bit capability.
  */
-static inline void _cc_N(decompress_mem)(uint64_t pesbt, uint64_t cursor, bool tag, _cc_cap_t* cdp) {
+_CCDEF void _cc_N(decompress_mem)(uint64_t pesbt, uint64_t cursor, bool tag, _cc_cap_t* cdp) {
     _cc_N(decompress_raw)(pesbt ^ _CC_N(NULL_XOR_MASK), cursor, tag, cdp);
 }
 
-static inline bool _cc_N(is_cap_sealed)(const _cc_cap_t* cp) { return _cc_N(get_otype)(cp) != _CC_N(OTYPE_UNSEALED); }
+_CCDEF bool _cc_N(is_cap_sealed)(const _cc_cap_t* cp) { return _cc_N(get_otype)(cp) != _CC_N(OTYPE_UNSEALED); }
 
 // Update ebt bits in pesbt
-static inline void _cc_N(update_ebt)(_cc_cap_t* csp, _cc_addr_t new_ebt) {
+_CCDEF void _cc_N(update_ebt)(_cc_cap_t* csp, _cc_addr_t new_ebt) {
     csp->cr_pesbt = (csp->cr_pesbt & ~_CC_N(FIELD_EBT_MASK64)) | new_ebt;
 }
 
@@ -458,13 +475,13 @@ static inline void _cc_N(update_ebt)(_cc_cap_t* csp, _cc_addr_t new_ebt) {
  * Note: if you have not been manually modifying fields, just access csp->cr_pesbt.
  * cap_set_decompressed_X will set fields and keep pesbt in sync.
  */
-static inline _cc_addr_t _cc_N(compress_raw)(const _cc_cap_t* csp) {
+_CCDEF _cc_addr_t _cc_N(compress_raw)(const _cc_cap_t* csp) {
     _cc_debug_assert((!csp->cr_tag || _cc_N(get_reserved)(csp) == 0) &&
                      "Unknown reserved bits set it tagged capability");
     return csp->cr_pesbt;
 }
 
-static inline _cc_addr_t _cc_N(compress_mem)(const _cc_cap_t* csp) {
+_CCDEF _cc_addr_t _cc_N(compress_mem)(const _cc_cap_t* csp) {
     return _cc_N(compress_raw)(csp) ^ _CC_N(NULL_XOR_MASK);
 }
 
@@ -476,7 +493,7 @@ static inline _cc_addr_t _cc_N(compress_mem)(const _cc_cap_t* csp) {
 // #define SIMPLE_REPRESENT_CHECK
 
 #ifndef SIMPLE_REPRESENT_CHECK
-static inline bool _cc_N(all_ones)(uint64_t offset, uint32_t e, uint32_t bwidth) {
+_CCDEF bool _cc_N(all_ones)(uint64_t offset, uint32_t e, uint32_t bwidth) {
     uint64_t Itop;
     uint32_t shift = e + bwidth;
 
@@ -486,7 +503,7 @@ static inline bool _cc_N(all_ones)(uint64_t offset, uint32_t e, uint32_t bwidth)
     return Itop == (0xfffffffffffffffful >> shift);
 }
 
-static inline bool _cc_N(all_zeroes)(uint64_t offset, uint32_t e, uint32_t bwidth) {
+_CCDEF bool _cc_N(all_zeroes)(uint64_t offset, uint32_t e, uint32_t bwidth) {
     uint32_t shift = e + bwidth;
     uint64_t Itop;
 
@@ -498,11 +515,13 @@ static inline bool _cc_N(all_zeroes)(uint64_t offset, uint32_t e, uint32_t bwidt
 }
 #endif /* ! SIMPLE_REPRESENT_CHECK */
 
+// TODO - should this be _CCDEF-d, and made external? 
+// It sounds like it might have some extra preconditions, but they aren't documented...
 static bool _cc_N(fast_is_representable_new_addr)(bool sealed, _cc_addr_t base, _cc_length_t length, _cc_addr_t cursor,
                                                   _cc_addr_t new_cursor);
 
 /// Check that a capability is representable by compressing and recompressing
-static inline bool _cc_N(is_representable_cap_exact)(const _cc_cap_t* cap) {
+_CCDEF bool _cc_N(is_representable_cap_exact)(const _cc_cap_t* cap) {
     _cc_addr_t pesbt = _cc_N(compress_raw)(cap);
     _cc_cap_t decompressed_cap;
     _cc_N(decompress_raw)(pesbt, cap->_cr_cursor, cap->cr_tag, &decompressed_cap);
@@ -516,7 +535,7 @@ static inline bool _cc_N(is_representable_cap_exact)(const _cc_cap_t* cap) {
     return true;
 }
 
-static inline uint32_t _cc_N(compute_ebt)(_cc_addr_t req_base, _cc_length_t req_top, _cc_addr_t* alignment_mask,
+_CCDEF uint32_t _cc_N(compute_ebt)(_cc_addr_t req_base, _cc_length_t req_top, _cc_addr_t* alignment_mask,
                                           bool* exact) {
 #ifdef CC_IS_MORELLO
     if (req_base == 0 && req_top == CC128_MAX_TOP) {
@@ -669,7 +688,7 @@ static inline uint32_t _cc_N(compute_ebt)(_cc_addr_t req_base, _cc_length_t req_
  *   where Imid = i<E+19, E>, Amid = a<E+19, E>, R = B - 2^12 and a =
  *   base + offset.
  */
-static inline bool _cc_N(is_representable_new_addr)(bool sealed, _cc_addr_t base, _cc_length_t length,
+_CCDEF bool _cc_N(is_representable_new_addr)(bool sealed, _cc_addr_t base, _cc_length_t length,
                                                     _cc_addr_t cursor, _cc_addr_t new_cursor) {
     _cc_length_t top = (_cc_length_t)base + length;
 
@@ -712,7 +731,7 @@ static inline bool _cc_N(is_representable_new_addr)(bool sealed, _cc_addr_t base
     }
 }
 
-static inline _cc_addr_t _cc_N(cap_bounds_address)(const _cc_cap_t* cap) {
+_CCDEF _cc_addr_t _cc_N(cap_bounds_address)(const _cc_cap_t* cap) {
     // Remove flags bits
     _cc_addr_t cursor = cap->_cr_cursor & _CC_CURSOR_MASK;
     // Sign extend
@@ -722,11 +741,11 @@ static inline _cc_addr_t _cc_N(cap_bounds_address)(const _cc_cap_t* cap) {
 }
 
 // This should only be used on decompressed caps, as it relies on the exp field
-static inline bool _cc_N(cap_bounds_uses_value)(const _cc_cap_t* cap) {
+_CCDEF bool _cc_N(cap_bounds_uses_value)(const _cc_cap_t* cap) {
     return cap->cr_exp < (sizeof(_cc_addr_t) * 8) - _CC_N(FIELD_BOTTOM_ENCODED_SIZE);
 }
 
-static inline bool _cc_N(cap_sign_change)(_cc_addr_t addr1, _cc_addr_t addr2) {
+_CCDEF bool _cc_N(cap_sign_change)(_cc_addr_t addr1, _cc_addr_t addr2) {
 #ifdef CC_IS_MORELLO
     return ((addr1 ^ addr2) & (1ULL << (63 - MORELLO_FLAG_BITS)));
 #else
@@ -736,12 +755,12 @@ static inline bool _cc_N(cap_sign_change)(_cc_addr_t addr1, _cc_addr_t addr2) {
 #endif
 }
 
-static inline bool _cc_N(cap_sign_change_causes_unrepresentability)(const _cc_cap_t* cap, _cc_addr_t addr1,
+_CCDEF bool _cc_N(cap_sign_change_causes_unrepresentability)(const _cc_cap_t* cap, _cc_addr_t addr1,
                                                                     _cc_addr_t addr2) {
     return _cc_N(cap_sign_change)(addr1, addr2) && _cc_N(cap_bounds_uses_value)(cap);
 }
 
-static inline bool _cc_N(is_representable_with_addr)(const _cc_cap_t* cap, _cc_addr_t new_addr) {
+_CCDEF bool _cc_N(is_representable_with_addr)(const _cc_cap_t* cap, _cc_addr_t new_addr) {
     new_addr &= _CC_CURSOR_MASK;
 #ifdef CC_IS_MORELLO
     // If the top bit is changed on morello this can change bounds
@@ -809,7 +828,7 @@ static bool _cc_N(fast_is_representable_new_addr)(bool sealed, _cc_addr_t base, 
 }
 
 /* @return whether the operation was able to set precise bounds precise or not */
-static inline bool _cc_N(setbounds_impl)(_cc_cap_t* cap, _cc_addr_t req_base, _cc_length_t req_top,
+_CCDEF bool _cc_N(setbounds_impl)(_cc_cap_t* cap, _cc_addr_t req_base, _cc_length_t req_top,
                                          _cc_addr_t* alignment_mask) {
 #ifdef CC_IS_MORELLO
     if (!cap->cr_bounds_valid) {
@@ -885,12 +904,12 @@ static inline bool _cc_N(setbounds_impl)(_cc_cap_t* cap, _cc_addr_t req_base, _c
 }
 
 /* @return whether the operation was able to set precise bounds precise or not */
-static inline bool _cc_N(setbounds)(_cc_cap_t* cap, _cc_addr_t req_base, _cc_length_t req_top) {
+_CCDEF bool _cc_N(setbounds)(_cc_cap_t* cap, _cc_addr_t req_base, _cc_length_t req_top) {
     return _cc_N(setbounds_impl)(cap, req_base, req_top, NULL);
 }
 
 /* @return the mask that needs to be applied to base in order to get a precisely representable capability */
-static inline _cc_addr_t _cc_N(get_alignment_mask)(_cc_addr_t req_length) {
+_CCDEF _cc_addr_t _cc_N(get_alignment_mask)(_cc_addr_t req_length) {
     if (req_length == 0) {
         // With a lenght of zero we know it is precise so we can just return an
         // all ones mask.
@@ -910,7 +929,7 @@ static inline _cc_addr_t _cc_N(get_alignment_mask)(_cc_addr_t req_length) {
     return mask;
 }
 
-static inline _cc_cap_t _cc_N(make_max_perms_cap)(_cc_addr_t base, _cc_addr_t cursor, _cc_length_t top) {
+_CCDEF _cc_cap_t _cc_N(make_max_perms_cap)(_cc_addr_t base, _cc_addr_t cursor, _cc_length_t top) {
     _cc_cap_t creg;
     memset(&creg, 0, sizeof(creg));
     assert(base <= top && "Invalid arguments");
@@ -929,13 +948,13 @@ static inline _cc_cap_t _cc_N(make_max_perms_cap)(_cc_addr_t base, _cc_addr_t cu
     return creg;
 }
 
-static inline _cc_addr_t _cc_N(get_required_alignment)(_cc_addr_t req_length) {
+_CCDEF _cc_addr_t _cc_N(get_required_alignment)(_cc_addr_t req_length) {
     // To get the required alignment from the CRAM mask we can just invert
     // the bits and add one to get a power-of-two
     return ~_cc_N(get_alignment_mask)(req_length) + 1;
 }
 
-static inline _cc_addr_t _cc_N(get_representable_length)(_cc_addr_t req_length) {
+_CCDEF _cc_addr_t _cc_N(get_representable_length)(_cc_addr_t req_length) {
     _cc_addr_t mask = _cc_N(get_alignment_mask)(req_length);
     return (req_length + ~mask) & mask;
 }
