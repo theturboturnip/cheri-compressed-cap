@@ -8,7 +8,7 @@ type Cap = CcxCap<Cc64>;
 pub type Cc64Cap = Cap;
 
 /// Import C functions for CC64
-#[link(name = "cheri_compressed_cap", kind = "static")]
+#[link(name = "cheri_compressed_cap")]
 extern "C" {
     fn cc64_compress_raw(src_cap: *const Cap) -> Addr;
     fn cc64_decompress_raw(pesbt: Addr, cursor: Addr, tag: bool, out_cap: *mut Cap);
@@ -42,6 +42,7 @@ extern "C" {
 /// Defines the CC64 capability profile as an implementation of the CompressedCapability trait.
 /// 
 /// Empty enum, so it cannot be itself constructed. If you want a CC64 capability, instantiate CC64::Cap.
+#[derive(Debug)]
 pub enum Cc64 {}
 impl CompressedCapability for Cc64 {
     type Length = Length;

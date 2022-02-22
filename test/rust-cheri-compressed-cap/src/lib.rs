@@ -1,4 +1,14 @@
-use std::ops::{Add,Sub};
+use std::fmt::Debug;
+use num_traits::Num;
+
+/// Trait that the field types defined in CompressedCapability (Length, Offset, Addr) have to implement.
+pub trait NumType: Default + Num + Copy + Debug {}
+impl NumType for u32 {}
+impl NumType for u64 {}
+impl NumType for u128 {}
+impl NumType for i32 {}
+impl NumType for i64 {}
+impl NumType for i128 {}
 
 /// Trait defining the public API for a specific capability type.
 /// A type X implementing CompressedCapability is equivalent to the API provided by `cheri_compressed_cap_X.h` in C,
@@ -7,11 +17,11 @@ use std::ops::{Add,Sub};
 /// See README.md for description of trait functions
 pub trait CompressedCapability: Sized {
     /// ccx_length_t equivalent
-    type Length: Default + Copy + Add + Sub + PartialEq;
+    type Length: NumType;
     /// ccx_offset_t equivalent
-    type Offset: Default + Copy + Add + Sub + PartialEq;
+    type Offset: NumType;
     /// ccx_addr_t equivalent
-    type Addr: Default + Copy + Into<Self::Offset> + Into<Self::Length> + Add + Sub + PartialEq;
+    type Addr: NumType + Into<Self::Offset> + Into<Self::Length>;
 
     /// CCX_PERM_GLOBAL equivalent
     /// These are the same for 64 and 128bit, but should be overridden for Morello-128
@@ -85,13 +95,7 @@ pub struct CcxCap<T: CompressedCapability> {
     cr_extra: u8,
 }
 /// Implements the C++-only member functions
-impl<T: CompressedCapability> CcxCap<T> 
-    // This is an annoyingly long where-clause which states (T::Offset - T::Offset) is of type T::Offset,
-    // and the same for T::Length.
-    // These are required because our member functions need to evaluate these subtractions,
-    // but Rust doesn't know what Offset or Length are ahead of time.
-    where <T::Offset as Sub>::Output: Into<T::Offset>, 
-            <T::Length as Sub>::Output: Into<T::Length> {
+impl<T: CompressedCapability> CcxCap<T> {
 
     pub fn base(&self) -> T::Addr {
         self.cr_base
@@ -178,5 +182,11 @@ pub use cc64::{Cc64,Cc64Cap};
 
 #[cfg(test)]
 mod tests {
+    use crate::CompressedCapability;
     // TODO port some tests from the C tests?
+    #[test]
+    fn test_printing() {
+        let cap = crate::Cc64::decompress_raw(0, 0, false);
+        println!("{:?}", cap)
+    }
 }

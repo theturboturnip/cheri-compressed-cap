@@ -6,6 +6,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+num-traits = "0.2.14"
 
 [build-dependencies]
 # Add a c-compiler dependency so we can compile the compressed-cap library
