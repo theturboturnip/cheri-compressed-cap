@@ -1,8 +1,8 @@
 use std::fmt::Debug;
-use num_traits::Num;
+use num_traits::{Num, One};
 
 /// Trait that the field types defined in CompressedCapability (Length, Offset, Addr) have to implement.
-pub trait NumType: Default + Num + Copy + Debug {}
+pub trait NumType: Default + Num + Copy + Clone + Debug + PartialOrd + Ord {}
 impl NumType for u32 {}
 impl NumType for u64 {}
 impl NumType for u128 {}
@@ -16,10 +16,10 @@ impl NumType for i128 {}
 /// 
 /// See README.md for description of trait functions
 pub trait CompressedCapability: Sized {
-    /// ccx_length_t equivalent
-    type Length: NumType;
-    /// ccx_offset_t equivalent
-    type Offset: NumType;
+    /// ccx_length_t equivalent - should be a superset of Addr
+    type Length: NumType + From<Self::Addr>;
+    /// ccx_offset_t equivalent - should be a superset of Addr
+    type Offset: NumType + From<Self::Addr>;
     /// ccx_addr_t equivalent
     type Addr: NumType + Into<Self::Offset> + Into<Self::Length>;
 
@@ -136,6 +136,12 @@ impl<T: CompressedCapability> CcxCap<T> {
     pub fn flags(&self) -> u8 {
         T::get_flags(self)
     }
+
+    /// Check if an arbitrary object's address range is in this capability's bounds.
+    pub fn addr_in_bounds(&self, addr: T::Addr, obj_size: T::Addr) -> bool {
+        addr < self.base() || 
+            T::Length::from(addr + obj_size - T::Addr::one()) > self.top()
+    }
 }
 /// Implements the `operator==` from cheri_compressed_cap_common.h
 impl<T: CompressedCapability> PartialEq for CcxCap<T> {
@@ -145,6 +151,7 @@ impl<T: CompressedCapability> PartialEq for CcxCap<T> {
         self.cr_pesbt == other.cr_pesbt
     }
 }
+impl<T: CompressedCapability> Eq for CcxCap<T> {}
 /// Equivalent to initialization pattern used in tests
 /// ```ccx_cap_t value;
 /// memset(&value, 0, sizeof(value));```
