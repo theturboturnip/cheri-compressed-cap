@@ -42,7 +42,9 @@ extern "C" {
 /// Defines the CC64 capability profile as an implementation of the CompressedCapability trait.
 /// 
 /// Empty enum, so it cannot be itself constructed. If you want a CC64 capability, instantiate CC64::Cap.
-#[derive(Debug)]
+/// 
+/// Derives Debug, Copy, Clone so that CcxCap<Cc64> can derive them too.
+#[derive(Debug,Copy,Clone)]
 pub enum Cc64 {}
 impl CompressedCapability for Cc64 {
     type Length = Length;
