@@ -56,12 +56,12 @@ The public C API for each type of capability includes: (X=capability width, so c
 
 - `ccx_bounds_bits extract_bounds_bits(ccx_addr_t pesbt)`
   - Extract the floating-point encoded bounds from pesbt
-- `bool ccx_setbounds(ccx_cap_t* dest_cap, ccx_addr_t req_base, ccx_addr_t req_top)`
+- `bool ccx_setbounds(ccx_cap_t* dest_cap, ccx_addr_t req_base, ccx_length_t req_top)`
   - Set the bounds for a capability to one which includes the range (min, max)
   - Returns true if the bounds exactly represents (min, max), or false if the bounds is larger than that
 - `bool ccx_is_representable_cap_exact(const ccx_cap_t* src_cap)`
   - Check if the range (base, top) for a capability is exactly encodable with the floating-point value
-- `ccx_cap_t ccx_make_max_perms_cap(ccx_addr_t base, ccx_addr_t cursor, ccx_addr_t top)`
+- `ccx_cap_t ccx_make_max_perms_cap(ccx_addr_t base, ccx_addr_t cursor, ccx_length_t top)`
   - Generate a capability with maximum permissions for a (base, top) bounds and an address within that bounds
 - `ccx_addr_t ccx_get_representable_length(ccx_addr_t length)`
   - Get the minimum representable length greater than or equal to a specific length

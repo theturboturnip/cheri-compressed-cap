@@ -88,9 +88,9 @@ pub trait CompressedCapability: Sized {
 
     /* Misc */
     fn extract_bounds_bits(pesbt: Self::Addr) -> CcxBoundsBits;
-    fn set_bounds(cap: &mut CcxCap<Self>, req_base: Self::Addr, req_top: Self::Addr) -> bool;
+    fn set_bounds(cap: &mut CcxCap<Self>, req_base: Self::Addr, req_top: Self::FfiLength) -> bool;
     fn is_representable_cap_exact(cap: &CcxCap<Self>) -> bool;
-    fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::Addr) -> CcxCap<Self>;
+    fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::FfiLength) -> CcxCap<Self>;
     fn get_representable_length(length: Self::Addr) -> Self::Addr;
     fn get_required_alignment(length: Self::Addr) -> Self::Addr;
     fn get_alignment_mask(length: Self::Addr) -> Self::Addr;
@@ -225,5 +225,18 @@ mod tests {
         println!("{:?}", cap);
     }
 
-    // TODO test 128-bit conversion
+    #[test]
+    fn test_cc128_u128_conversion() {
+        // Generate a capability between 0, 0x1_0000_0000_0000_0000 with the current cursor/address at 0x100
+        // When we get the 128-bit top(), it should be the same as the one we specified.
+        // If it isn't, the memory representation of FfiU128 and the C u128 may be different
+
+        let base: u64 = 0x1000_0000_0000;
+        let top: u128 = 0x2000_0000_0000;
+        let cap = crate::Cc128::make_max_perms_cap(base, base, top.into());
+        assert_eq!(cap.top(), top);
+        assert_eq!(cap._cr_top, top.into());
+        // cr_base is stored directly after _cr_top, so if the sizes for FfiU128 and C u128 are different it will have been overwritten
+        assert_eq!(cap.cr_base, base);
+    }
 }
