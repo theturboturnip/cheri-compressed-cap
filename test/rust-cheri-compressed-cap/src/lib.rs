@@ -2,6 +2,7 @@ use std::fmt::Debug;
 use num_traits::{Num, One};
 
 /// Trait that the field types defined in CompressedCapability (Length, Offset, Addr) have to implement.
+/// This asserts that a) they're numeric, b) they support Default/Copy/Clone/Debug so that CcxCap can derive these.
 pub trait NumType: Default + Num + Copy + Clone + Debug + PartialOrd + Ord {}
 impl NumType for u32 {}
 impl NumType for u64 {}
@@ -10,18 +11,32 @@ impl NumType for i32 {}
 impl NumType for i64 {}
 impl NumType for i128 {}
 
+/// Value which can be converted to T (a NumType).
+/// Must also be Default/Copy/Clone/Debug, so CcxCap can derive these.
+pub trait FfiNumType<T>: Default + Copy + Clone + Debug + Into<T> {}
+impl FfiNumType<u64> for u64 {}
+impl FfiNumType<i64> for i64 {}
+
 /// Trait defining the public API for a specific capability type.
 /// A type X implementing CompressedCapability is equivalent to the API provided by `cheri_compressed_cap_X.h` in C,
 /// where `ccx_cap_t` is equivalent to `CcxCap<X>`.
 /// 
 /// See README.md for description of trait functions
 pub trait CompressedCapability: Sized {
-    /// ccx_length_t equivalent - should be a superset of Addr
+    /// ccx_length_t Rust-land equivalent - should be a superset of Addr
     type Length: NumType + From<Self::Addr>;
-    /// ccx_offset_t equivalent - should be a superset of Addr
+    /// ccx_offset_t Rust-land equivalent - should be a superset of Addr
     type Offset: NumType + From<Self::Addr>;
     /// ccx_addr_t equivalent
     type Addr: NumType + Into<Self::Offset> + Into<Self::Length>;
+
+    /// ccx_length_t C-land equivalent - should have a memory layout identical to the C ccx_length_t.
+    /// This is separate from Length because for 128-bit types the Rust and C versions may not look the same.
+    /// e.g. Rust u128 is not FFI-safe, the C version uses GCC extension 128-bit values
+    type FfiLength: FfiNumType<Self::Length>;
+    /// ccx_offset_t C-land equivalent - should have a memory layout identical to the C ccx_offset_t.
+    /// See [FfiLength] for an explanation.
+    type FfiOffset: FfiNumType<Self::Offset>;
 
     /// CCX_PERM_GLOBAL equivalent
     /// These are the same for 64 and 128bit, but should be overridden for Morello-128
@@ -87,7 +102,8 @@ pub trait CompressedCapability: Sized {
 pub struct CcxCap<T: CompressedCapability> {
     _cr_cursor: T::Addr,
     cr_pesbt: T::Addr,
-    _cr_top: T::Length,
+    /// _cr_top is stored in memory in a C-compatible way, then converted to the Rust-y version when we manipulate it in Rust
+    _cr_top: T::FfiLength,
     cr_base: T::Addr,
     cr_tag: u8,
     cr_bounds_valid: u8,
@@ -109,7 +125,7 @@ impl<T: CompressedCapability> CcxCap<T> {
         (cursor - base).into()
     }
     pub fn top(&self) -> T::Length {
-        self._cr_top
+        self._cr_top.into()
     }
     // TODO top64
     pub fn length(&self) -> T::Length {
@@ -182,10 +198,19 @@ pub struct CcxBoundsBits {
     ie: bool,
 }
 
+mod ffi_num;
+pub use ffi_num::{FfiU128,FfiI128};
+
 // Include cc64 definitions
 mod cc64;
 // Export the CC64 instance of CompressedCapability, and the associated CcxCap type
 pub use cc64::{Cc64,Cc64Cap};
+
+// Include cc128 definitions
+mod cc128;
+// Export the CC128 instance of CompressedCapability, and the associated CcxCap type
+pub use cc128::{Cc128,Cc128Cap};
+
 
 #[cfg(test)]
 mod tests {
@@ -194,6 +219,11 @@ mod tests {
     #[test]
     fn test_printing() {
         let cap = crate::Cc64::decompress_raw(0, 0, false);
-        println!("{:?}", cap)
+        println!("{:?}", cap);
+
+        let cap = crate::Cc128::decompress_raw(0, 0, false);
+        println!("{:?}", cap);
     }
+
+    // TODO test 128-bit conversion
 }

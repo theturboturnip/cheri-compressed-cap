@@ -50,6 +50,9 @@ impl CompressedCapability for Cc64 {
     type Length = Length;
     type Offset = Offset;
     type Addr = Addr;
+
+    type FfiLength = Length;
+    type FfiOffset = Offset;
     
     /// ```_CC_N(OTYPE_UNSEALED) = (_CC_N(MAX_REPRESENTABLE_OTYPE) - 0u),
     /// _CC_N(OTYPE_UNSEALED_SIGNED) = (((int64_t)-1) - 0u)```
