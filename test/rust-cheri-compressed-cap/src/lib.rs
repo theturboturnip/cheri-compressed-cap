@@ -13,7 +13,7 @@ impl NumType for i128 {}
 
 /// Value which can be converted to T (a NumType).
 /// Must also be Default/Copy/Clone/Debug, so CcxCap can derive these.
-pub trait FfiNumType<T>: Default + Copy + Clone + Debug + Into<T> {}
+pub trait FfiNumType<T>: Default + Copy + Clone + Debug + Into<T> + From<T> {}
 impl FfiNumType<u64> for u64 {}
 impl FfiNumType<i64> for i64 {}
 
@@ -116,17 +116,36 @@ impl<T: CompressedCapability> CcxCap<T> {
     pub fn base(&self) -> T::Addr {
         self.cr_base
     }
+    pub fn top(&self) -> T::Length {
+        self._cr_top.into()
+    }
+    pub fn set_bounds(&mut self, req_base: T::Addr, req_top: T::Length) -> Result<(),()> {
+        if T::set_bounds(self, req_base, T::FfiLength::from(req_top)) {
+            Ok(())
+        } else {
+            Err(())
+        }
+    }
+
     pub fn address(&self) -> T::Addr {
         self._cr_cursor
     }
+    pub fn set_address_checked(&mut self, addr: T::Addr) -> Result<(),()> {
+        // If addr < base or addr > top + 1, capability would be invalid.
+        if addr < self.base() || 
+            ((self.top() + T::Length::one()) < addr.into()) {
+            return Err(())
+        }
+        self._cr_cursor = addr;
+        Ok(())
+    }
+
     pub fn offset(&self) -> T::Offset {
         let cursor: T::Offset = self._cr_cursor.into();
         let base: T::Offset = self.cr_base.into();
         (cursor - base).into()
     }
-    pub fn top(&self) -> T::Length {
-        self._cr_top.into()
-    }
+    
     // TODO top64
     pub fn length(&self) -> T::Length {
         let top: T::Length = self._cr_top.into();
@@ -137,20 +156,39 @@ impl<T: CompressedCapability> CcxCap<T> {
     pub fn software_permissions(&self) -> u32 {
         T::get_uperms(self)
     }
+    pub fn set_software_permissions(&mut self, uperms: u32) {
+        T::update_uperms(self, uperms)
+    }
+
     pub fn permissions(&self) -> u32 {
         T::get_perms(self)
     }
+    pub fn set_permissions(&mut self, perms: u32) {
+        T::update_perms(self, perms)
+    }
+
     pub fn otype(&self) -> u32 {
         T::get_otype(self)
     }
     pub fn is_sealed(&self) -> bool {
         self.otype() != T::OTYPE_UNSEALED
     }
+    pub fn set_otype(&mut self, otype: u32) {
+        T::update_otype(self, otype)
+    }
+
     pub fn reserved_bits(&self) -> u8 {
         T::get_reserved(self)
     }
+    pub fn set_reserved_bits(&mut self, bits: u8) {
+        T::update_reserved(self, bits)
+    }
+
     pub fn flags(&self) -> u8 {
         T::get_flags(self)
+    }
+    pub fn set_flags(&mut self, flags: u8) {
+        T::update_flags(self, flags)
     }
 
     /// Check if an arbitrary object's address range is in this capability's bounds.
