@@ -1,47 +1,15 @@
 use crate::{CompressedCapability,CcxCap,CcxBoundsBits};
 use crate::ffi_num::{FfiU128,FfiI128};
+use crate::c_funcs::*;
 
-type Length = u128;
-type Offset = i128;
-type FfiLength = FfiU128;
-type FfiOffset = FfiI128;
-type Addr = u64;
+pub type Length = u128;
+pub type Offset = i128;
+pub type FfiLength = FfiU128;
+pub type FfiOffset = FfiI128;
+pub type Addr = u64;
 
-type Cap = CcxCap<Cc128>;
+pub type Cap = CcxCap<Cc128>;
 pub type Cc128Cap = Cap;
-
-/// Import C functions for CC64
-#[link(name = "cheri_compressed_cap")]
-extern "C" {
-    fn cc128_compress_raw(src_cap: *const Cap) -> Addr;
-    fn cc128_decompress_raw(pesbt: Addr, cursor: Addr, tag: bool, out_cap: *mut Cap);
-    fn cc128_compress_mem(src_cap: *const Cap) -> Addr;
-    fn cc128_decompress_mem(pesbt: Addr, cursor: Addr, tag: bool, out_cap: *mut Cap);
-
-    /* Getters */
-    fn cc128_get_uperms(cap: *const Cap) -> u32;
-    fn cc128_get_perms(cap: *const Cap) -> u32;
-    fn cc128_get_otype(cap: *const Cap) -> u32;
-    fn cc128_get_reserved(cap: *const Cap) -> u8;
-    fn cc128_get_flags(cap: *const Cap) -> u8;
-
-    /* Updaters */
-    fn cc128_update_uperms(cap: *mut Cap, value: Addr);
-    fn cc128_update_perms(cap: *mut Cap, value: Addr);
-    fn cc128_update_otype(cap: *mut Cap, value: Addr);
-    fn cc128_update_reserved(cap: *mut Cap, value: Addr);
-    fn cc128_update_flags(cap: *mut Cap, value: Addr);
-
-    /* Misc */
-    fn cc128_extract_bounds_bits(pesbt: Addr) -> CcxBoundsBits;
-    fn cc128_setbounds(cap: *mut Cap, req_base: Addr, req_top: FfiLength) -> bool;
-    fn cc128_is_representable_cap_exact(cap: *const Cap) -> bool;
-    fn cc128_is_representable_new_addr(sealed: bool, base: Addr, length: FfiLength, cursor: Addr, new_cursor: Addr) -> bool;
-    fn cc128_make_max_perms_cap(base: Addr, cursor: Addr, top: FfiLength) -> Cap;
-    fn cc128_get_representable_length(length: FfiLength) -> FfiLength;
-    fn cc128_get_required_alignment(length: FfiLength) -> FfiLength;
-    fn cc128_get_alignment_mask(length: FfiLength) -> FfiLength;
-}
 
 /// Defines the CC64 capability profile as an implementation of the CompressedCapability trait.
 /// 

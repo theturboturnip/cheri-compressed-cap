@@ -1,44 +1,14 @@
 use crate::{CompressedCapability,CcxCap,CcxBoundsBits};
+use crate::c_funcs::*;
 
-type Length = u64;
-type Offset = i64;
-type Addr = u32;
+pub type Length = u64;
+pub type Offset = i64;
+pub type FfiLength = u64;
+pub type FfiOffset = i64;
+pub type Addr = u32;
 
-type Cap = CcxCap<Cc64>;
+pub type Cap = CcxCap<Cc64>;
 pub type Cc64Cap = Cap;
-
-/// Import C functions for CC64
-#[link(name = "cheri_compressed_cap")]
-extern "C" {
-    fn cc64_compress_raw(src_cap: *const Cap) -> Addr;
-    fn cc64_decompress_raw(pesbt: Addr, cursor: Addr, tag: bool, out_cap: *mut Cap);
-    fn cc64_compress_mem(src_cap: *const Cap) -> Addr;
-    fn cc64_decompress_mem(pesbt: Addr, cursor: Addr, tag: bool, out_cap: *mut Cap);
-
-    /* Getters */
-    fn cc64_get_uperms(cap: *const Cap) -> u32;
-    fn cc64_get_perms(cap: *const Cap) -> u32;
-    fn cc64_get_otype(cap: *const Cap) -> u32;
-    fn cc64_get_reserved(cap: *const Cap) -> u8;
-    fn cc64_get_flags(cap: *const Cap) -> u8;
-
-    /* Updaters */
-    fn cc64_update_uperms(cap: *mut Cap, value: Addr);
-    fn cc64_update_perms(cap: *mut Cap, value: Addr);
-    fn cc64_update_otype(cap: *mut Cap, value: Addr);
-    fn cc64_update_reserved(cap: *mut Cap, value: Addr);
-    fn cc64_update_flags(cap: *mut Cap, value: Addr);
-
-    /* Misc */
-    fn cc64_extract_bounds_bits(pesbt: Addr) -> CcxBoundsBits;
-    fn cc64_setbounds(cap: *mut Cap, req_base: Addr, req_top: Length) -> bool;
-    fn cc64_is_representable_cap_exact(cap: *const Cap) -> bool;
-    fn cc64_is_representable_new_addr(sealed: bool, base: Addr, length: Length, cursor: Addr, new_cursor: Addr) -> bool;
-    fn cc64_make_max_perms_cap(base: Addr, cursor: Addr, top: Length) -> Cap;
-    fn cc64_get_representable_length(length: Length) -> Length;
-    fn cc64_get_required_alignment(length: Length) -> Length;
-    fn cc64_get_alignment_mask(length: Length) -> Length;
-}
 
 /// Defines the CC64 capability profile as an implementation of the CompressedCapability trait.
 /// 
@@ -52,8 +22,8 @@ impl CompressedCapability for Cc64 {
     type Offset = Offset;
     type Addr = Addr;
 
-    type FfiLength = Length;
-    type FfiOffset = Offset;
+    type FfiLength = FfiLength;
+    type FfiOffset = FfiOffset;
     
     /// ```_CC_N(OTYPE_UNSEALED) = (_CC_N(MAX_REPRESENTABLE_OTYPE) - 0u),
     /// _CC_N(OTYPE_UNSEALED_SIGNED) = (((int64_t)-1) - 0u)```

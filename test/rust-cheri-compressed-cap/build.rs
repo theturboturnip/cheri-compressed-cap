@@ -10,5 +10,5 @@ fn main() {
     cc::Build::new()
         .file("../../cheri_compressed_cap_lib.c")
         .flag_if_supported("-Wno-unused-function")
-        .compile("cheri_compressed_cap");
+        .compile("cheri_compressed_cap_lib");
 }

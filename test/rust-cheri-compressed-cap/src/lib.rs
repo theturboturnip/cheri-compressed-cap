@@ -265,6 +265,8 @@ pub struct CcxBoundsBits {
     ie: bool,
 }
 
+mod c_funcs;
+
 mod ffi_num;
 pub use ffi_num::{FfiU128,FfiI128};
 
