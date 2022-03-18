@@ -5,6 +5,7 @@ use crate::CompressedCapability;
 
 /// Trait exposing the utility functions used to specify CHERI-RISC-V behaviour in Tech Report 951
 /// Behaviour is derived from [the Sail specification](https://github.com/CTSRD-CHERI/sail-cheri-riscv)
+#[allow(non_snake_case)]
 pub trait CheriRVFuncs<T: CompressedCapability> {
     type Cap;
 
@@ -82,25 +83,36 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
 
     // These can return (false, cap); `cap` may not preserve bounds (???)
     fn setCapBounds(c: &Self::Cap, base: Self::CapAddrBits, top: Self::CapLen) -> (bool, Self::Cap) {
-        let c = *c;
-        c.set_bounds(base, top);
+        let mut c = *c;
+        c.set_bounds_unchecked(base, top);
         (c.is_exact(), c)
     }
-    fn setCapAddr(c_old: &Self::Cap, addr: Self::CapAddrBits) -> (bool, Self::Cap) {
-        let c = *c_old;
-        c.set_address_unchecked(addr);
-        todo!("Sail computes the bounds on each check, relative to the address(?). 
-        Thus, checking if the bounds have changed = checking if the capability is representable
-        how should we check this in Rust?")
-        (c.bounds() == c_old.bounds(), c)
+    fn setCapAddr(c: &Self::Cap, addr: Self::CapAddrBits) -> (bool, Self::Cap) {
+        // This deviates from the Sail - Sail checks validity by recomputing 
+        // the bounds for the old and new capabilities, here we use the same 
+        // check as for setCapOffset, incCapOffset
+        let new_address = addr;
+        let representable = c.is_representable_with_new_addr(new_address);
+
+        let mut c = *c;
+        c.set_address_unchecked(new_address);
+        (representable, c)
     }
     fn setCapOffset(c: &Self::Cap, offset: Self::CapAddrBits) -> (bool, Self::Cap) {
-        todo!("Sail uses a 'fastRepCheck' function to see if this is representable - can we use .is_exact() for this?");
-        Self::setCapAddr(c, c.base() + offset)
+        let new_address = c.base() + offset;
+        let representable = c.is_representable_with_new_addr(new_address);
+
+        let mut c = *c;
+        c.set_address_unchecked(new_address);
+        (representable, c)
     }
     fn incCapOffset(c: &Self::Cap, offset_inc: Self::CapAddrBits) -> (bool, Self::Cap) {
-        todo!("Sail uses a 'fastRepCheck' function to see if this is representable - can we use .is_exact() for this?");
-        Self::setCapAddr(c, c.address() + offset_inc)
+        let new_address = c.address() + offset_inc;
+        let representable = c.is_representable_with_new_addr(new_address);
+
+        let mut c = *c;
+        c.set_address_unchecked(new_address);
+        (representable, c)
     }
 
     fn getRepresentableAlignmentMask(val: Self::CapLen) -> Self::CapLen {
@@ -113,13 +125,13 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
     fn sealCap(c: &Self::Cap, otype: Self::OType) -> Self::Cap {
         assert!(otype != T::OTYPE_UNSEALED);
         // Set otype to whatever we asked for
-        let c = *c;
+        let mut c = *c;
         c.set_otype(otype);
         c
     }
     fn unsealCap(c: &Self::Cap) -> Self::Cap {
         // Just set otype = UNSEALED
-        let c = *c;
+        let mut c = *c;
         c.set_otype(T::OTYPE_UNSEALED);
         c
     }
@@ -130,7 +142,7 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
         c.otype() > T::MAX_UNRESERVED_OTYPE
     }
     fn invalidateCap(c: &Self::Cap) -> Self::Cap {
-        let c = *c;
+        let mut c = *c;
         c.set_tag(false);
         c
     }
@@ -140,7 +152,7 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
     }
     fn setCapPerms(c: &Self::Cap, perms: Self::Perms) -> Self::Cap {
         // Deref (i.e. make a copy)
-        let c = *c;
+        let mut c = *c;
         c.set_permissions(perms);
         c
     }
@@ -149,7 +161,7 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
     }
     fn setCapFlags(c: &Self::Cap, flags: Self::Flags) -> Self::Cap {
         // Deref (i.e. make a copy)
-        let c = *c;
+        let mut c = *c;
         c.set_flags(flags);
         c
     }
