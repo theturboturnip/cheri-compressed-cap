@@ -37,9 +37,9 @@ extern "C" {
     fn cc128_setbounds(cap: *mut Cap, req_base: Addr, req_top: FfiLength) -> bool;
     fn cc128_is_representable_cap_exact(cap: *const Cap) -> bool;
     fn cc128_make_max_perms_cap(base: Addr, cursor: Addr, top: FfiLength) -> Cap;
-    fn cc128_get_representable_length(length: Addr) -> Addr;
-    fn cc128_get_required_alignment(length: Addr) -> Addr;
-    fn cc128_get_alignment_mask(length: Addr) -> Addr;
+    fn cc128_get_representable_length(length: FfiLength) -> FfiLength;
+    fn cc128_get_required_alignment(length: FfiLength) -> FfiLength;
+    fn cc128_get_alignment_mask(length: FfiLength) -> FfiLength;
 }
 
 /// Defines the CC64 capability profile as an implementation of the CompressedCapability trait.
@@ -131,13 +131,13 @@ impl CompressedCapability for Cc128 {
     fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::FfiLength) -> Cap {
         unsafe { cc128_make_max_perms_cap(base, cursor, top) }
     }
-    fn get_representable_length(length: Self::Addr) -> Self::Addr {
-        unsafe { cc128_get_representable_length(length) }
+    fn get_representable_length(length: Self::Length) -> Self::Length {
+        unsafe { cc128_get_representable_length(length.into()).into() }
     }
-    fn get_required_alignment(length: Self::Addr) -> Self::Addr {
-        unsafe { cc128_get_required_alignment(length) }
+    fn get_required_alignment(length: Self::Length) -> Self::Length {
+        unsafe { cc128_get_required_alignment(length.into()).into() }
     }
-    fn get_alignment_mask(length: Self::Addr) -> Self::Addr {
-        unsafe { cc128_get_alignment_mask(length) }
+    fn get_alignment_mask(length: Self::Length) -> Self::Length {
+        unsafe { cc128_get_alignment_mask(length.into()).into() }
     }
 }

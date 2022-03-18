@@ -909,7 +909,7 @@ _CCDEF bool _cc_N(setbounds)(_cc_cap_t* cap, _cc_addr_t req_base, _cc_length_t r
 }
 
 /* @return the mask that needs to be applied to base in order to get a precisely representable capability */
-_CCDEF _cc_addr_t _cc_N(get_alignment_mask)(_cc_addr_t req_length) {
+_CCDEF _cc_length_t _cc_N(get_alignment_mask)(_cc_length_t req_length) {
     if (req_length == 0) {
         // With a lenght of zero we know it is precise so we can just return an
         // all ones mask.
@@ -924,9 +924,16 @@ _CCDEF _cc_addr_t _cc_N(get_alignment_mask)(_cc_addr_t req_length) {
     tmpcap._cr_top = _CC_MAX_TOP;
     _cc_N(update_otype)(&tmpcap, _CC_N(OTYPE_UNSEALED));
     _cc_N(update_ebt)(&tmpcap, _CC_N(RESET_EBT));
-    _cc_addr_t mask = 0;
-    _cc_N(setbounds_impl)(&tmpcap, 0, req_length, &mask);
-    return mask;
+    _cc_addr_t mask_addr = 0;
+    _cc_N(setbounds_impl)(&tmpcap, 0, req_length, &mask_addr);
+    // Extend mask to length_t
+    // Generate the maxmimum possible mask for a Length type, remove bits that an address could use,
+    // then OR with the address-level mask
+    _cc_length_t mask_len = 
+        ((((_cc_length_t)1 << _CC_N(LEN_WIDTH)) - 1)
+        & ~(((_cc_length_t)1 << _CC_N(ADDR_WIDTH)) - 1))
+        | mask_addr;
+    return mask_len;
 }
 
 _CCDEF _cc_cap_t _cc_N(make_max_perms_cap)(_cc_addr_t base, _cc_addr_t cursor, _cc_length_t top) {
@@ -948,14 +955,14 @@ _CCDEF _cc_cap_t _cc_N(make_max_perms_cap)(_cc_addr_t base, _cc_addr_t cursor, _
     return creg;
 }
 
-_CCDEF _cc_addr_t _cc_N(get_required_alignment)(_cc_addr_t req_length) {
+_CCDEF _cc_length_t _cc_N(get_required_alignment)(_cc_length_t req_length) {
     // To get the required alignment from the CRAM mask we can just invert
     // the bits and add one to get a power-of-two
     return ~_cc_N(get_alignment_mask)(req_length) + 1;
 }
 
-_CCDEF _cc_addr_t _cc_N(get_representable_length)(_cc_addr_t req_length) {
-    _cc_addr_t mask = _cc_N(get_alignment_mask)(req_length);
+_CCDEF _cc_length_t _cc_N(get_representable_length)(_cc_length_t req_length) {
+    _cc_length_t mask = _cc_N(get_alignment_mask)(req_length);
     return (req_length + ~mask) & mask;
 }
 
@@ -988,7 +995,7 @@ public:
     static inline cap_t make_max_perms_cap(addr_t base, addr_t cursor, length_t top) {
         return _cc_N(make_max_perms_cap)(base, cursor, top);
     }
-    static inline addr_t representable_length(addr_t len) { return _cc_N(get_representable_length)(len); }
-    static inline addr_t representable_mask(addr_t len) { return _cc_N(get_alignment_mask)(len); }
+    static inline length_t representable_length(length_t len) { return _cc_N(get_representable_length)(len); }
+    static inline length_t representable_mask(length_t len) { return _cc_N(get_alignment_mask)(len); }
 };
 #endif

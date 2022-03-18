@@ -92,9 +92,9 @@ pub trait CompressedCapability: Sized {
     fn set_bounds(cap: &mut CcxCap<Self>, req_base: Self::Addr, req_top: Self::FfiLength) -> bool;
     fn is_representable_cap_exact(cap: &CcxCap<Self>) -> bool;
     fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::FfiLength) -> CcxCap<Self>;
-    fn get_representable_length(length: Self::Addr) -> Self::Addr;
-    fn get_required_alignment(length: Self::Addr) -> Self::Addr;
-    fn get_alignment_mask(length: Self::Addr) -> Self::Addr;
+    fn get_representable_length(length: Self::Length) -> Self::Length;
+    fn get_required_alignment(length: Self::Length) -> Self::Length;
+    fn get_alignment_mask(length: Self::Length) -> Self::Length;
 }
 
 // TODO - Assuming _CC_REVERSE_PESBT_CURSOR_ORDER is *not* set

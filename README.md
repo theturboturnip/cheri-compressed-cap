@@ -63,11 +63,11 @@ The public C API for each type of capability includes: (X=capability width, so c
   - Check if the range (base, top) for a capability is exactly encodable with the floating-point value
 - `ccx_cap_t ccx_make_max_perms_cap(ccx_addr_t base, ccx_addr_t cursor, ccx_length_t top)`
   - Generate a capability with maximum permissions for a (base, top) bounds and an address within that bounds
-- `ccx_addr_t ccx_get_representable_length(ccx_addr_t length)`
+- `ccx_length_t ccx_get_representable_length(ccx_length_t length)`
   - Get the minimum representable length greater than or equal to a specific length
   - if `get_representable_length(l) == l`, the length is exactly representable (when using the correct alignment - see `get_required_alignment`)
-- `ccx_addr_t ccx_get_required_alignment(ccx_addr_t length)`
+- `ccx_length_t ccx_get_required_alignment(ccx_length_t length)`
   - Get the alignment required for a range of some `length` to be exactly represented
-- `ccx_addr_t ccx_get_alignment_mask(ccx_addr_t length)`
+- `ccx_length_t ccx_get_alignment_mask(ccx_length_t length)`
   - Get a mask which aligns a range of some `length` such that it is exactly representable
   - Used for `get_representable_length`, `get_required_alignment`.

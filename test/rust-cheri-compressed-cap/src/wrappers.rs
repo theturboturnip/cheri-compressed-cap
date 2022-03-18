@@ -104,14 +104,10 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
     }
 
     fn getRepresentableAlignmentMask(val: Self::CapLen) -> Self::CapLen {
-        todo!("mismatch between Sail and C library - in Sail getRepresentableAlignmentMask takes and returns Length, not Address");
-        // T::get_alignment_mask(val)
-
-        
+        T::get_alignment_mask(val)
     }
     fn getRepresentableLength(val: Self::CapLen) -> Self::CapLen {
-        todo!("mismatch between Sail and C library - in Sail getRepresentableLength takes and returns Length, not Address");
-        // T::get_representable_length(val)
+        T::get_representable_length(val)
     }
 
     fn sealCap(c: &Self::Cap, otype: Self::OType) -> Self::Cap {

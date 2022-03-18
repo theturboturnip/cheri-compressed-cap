@@ -56,6 +56,8 @@ static void dump_cap_fields(const cc128_cap_t& result) {
 
 static inline void check_crrl_and_cram(uint64_t value) {
 #ifndef CC_IS_MORELLO
+    // TODO - both the sail and cc128 functions return 128-bit values,
+    // but this function only checks 64-bits.
     uint64_t sail_crrl = sail_representable_length_128(value);
     uint64_t clib_crrl = cc128_get_representable_length(value);
     if (sail_crrl != clib_crrl) {
@@ -63,6 +65,8 @@ static inline void check_crrl_and_cram(uint64_t value) {
                 clib_crrl);
         abort();
     }
+    // TODO - Same as above, sail and cc128 functions both return 128-bit values,
+    // but only 64-bits are checked.
     uint64_t sail_cram = sail_representable_mask_128(value);
     uint64_t clib_cram = cc128_get_alignment_mask(value);
     if (sail_cram != clib_cram) {
