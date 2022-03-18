@@ -62,6 +62,7 @@ impl CompressedCapability for Cc64 {
     const OTYPE_SENTRY:    u32 = Self::MAX_REPRESENTABLE_OTYPE - 1;
     const OTYPE_RESERVED2: u32 = Self::MAX_REPRESENTABLE_OTYPE - 2;
     const OTYPE_RESERVED3: u32 = Self::MAX_REPRESENTABLE_OTYPE - 3;
+    const MAX_UNRESERVED_OTYPE: u32 = Self::MAX_REPRESENTABLE_OTYPE - 4;
 
     fn compress_raw(cap: &Cap) -> Addr {
         unsafe { cc64_compress_raw(cap) }

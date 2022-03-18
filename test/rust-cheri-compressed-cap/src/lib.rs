@@ -59,6 +59,7 @@ pub trait CompressedCapability: Sized {
     const OTYPE_SENTRY: u32;
     const OTYPE_RESERVED2: u32;
     const OTYPE_RESERVED3: u32;
+    const MAX_UNRESERVED_OTYPE: u32;
 
     // Adapted, Rust-safe version of the C API
     // Should be defined by building a wrapper around a linked C function
@@ -111,13 +112,29 @@ pub struct CcxCap<T: CompressedCapability> {
     cr_extra: u8,
 }
 /// Implements the C++-only member functions
+/// 
+/// TODO: Decide if this API is opinionated, or just for setting/getting fields.
+/// Would be best to have a separate `SafeCap` trait?
 impl<T: CompressedCapability> CcxCap<T> {
+    pub fn tag(&self) -> bool {
+        // cr_tag is interpreted as a boolean with C rules
+        self.cr_tag != 0
+    }
+    pub fn set_tag(&mut self, tag: bool) {
+        self.cr_tag = if tag { 1 } else { 0 };
+    }
 
     pub fn base(&self) -> T::Addr {
         self.cr_base
     }
     pub fn top(&self) -> T::Length {
         self._cr_top.into()
+    }
+    pub fn bounds(&self) -> (T::Addr, T::Length) {
+        (self.base(), self.top())
+    }
+    pub fn set_bounds_unchecked(&mut self, req_base: T::Addr, req_top: T::Length) -> bool {
+        T::set_bounds(self, req_base, T::FfiLength::from(req_top))
     }
     pub fn set_bounds(&mut self, req_base: T::Addr, req_top: T::Length) -> Result<(),()> {
         if T::set_bounds(self, req_base, T::FfiLength::from(req_top)) {
@@ -129,6 +146,9 @@ impl<T: CompressedCapability> CcxCap<T> {
 
     pub fn address(&self) -> T::Addr {
         self._cr_cursor
+    }
+    pub fn set_address_unchecked(&mut self, addr: T::Addr) {
+        self._cr_cursor = addr;
     }
     pub fn set_address_checked(&mut self, addr: T::Addr) -> Result<(),()> {
         // If addr < base or addr > top + 1, capability would be invalid.
@@ -191,6 +211,10 @@ impl<T: CompressedCapability> CcxCap<T> {
         T::update_flags(self, flags)
     }
 
+    pub fn is_exact(&self) -> bool {
+        T::is_representable_cap_exact(self)
+    }
+
     /// Check if an arbitrary object's address range is in this capability's bounds.
     pub fn addr_in_bounds(&self, addr: T::Addr, obj_size: T::Addr) -> bool {
         addr < self.base() || 
@@ -249,6 +273,9 @@ mod cc128;
 // Export the CC128 instance of CompressedCapability, and the associated CcxCap type
 pub use cc128::{Cc128,Cc128Cap};
 
+mod wrappers;
+// Export 64 and 128-bit instances of CheriRVFuncs
+pub use wrappers::CheriRVFuncs;
 
 #[cfg(test)]
 mod tests {
