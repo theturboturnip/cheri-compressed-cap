@@ -26,10 +26,8 @@ impl CompressedCapability for Cc128 {
     type FfiLength = FfiLength;
     type FfiOffset = FfiOffset;
 
-    /// ```_CC_N(OTYPE_UNSEALED) = (_CC_N(MAX_REPRESENTABLE_OTYPE) - 0u),
-    /// _CC_N(OTYPE_UNSEALED_SIGNED) = (((int64_t)-1) - 0u)```
-    /// The OTYPE field is 4 bits (50:47) in CC64
-    const MAX_REPRESENTABLE_OTYPE: u32 = 0b1111;
+    /// The OTYPE field is 18 bits (108:91) in CC128
+    const MAX_REPRESENTABLE_OTYPE: u32 = 0x3_FFFF;
     const OTYPE_UNSEALED:  u32 = Self::MAX_REPRESENTABLE_OTYPE - 0;
     const OTYPE_SENTRY:    u32 = Self::MAX_REPRESENTABLE_OTYPE - 1;
     const OTYPE_RESERVED2: u32 = Self::MAX_REPRESENTABLE_OTYPE - 2;
