@@ -22,7 +22,7 @@ impl FfiNumType<i64> for i64 {}
 /// where `ccx_cap_t` is equivalent to `CcxCap<X>`.
 /// 
 /// See README.md for description of trait functions
-pub trait CompressedCapability: Sized {
+pub trait CompressedCapability: Sized + Copy + Clone {
     /// ccx_length_t Rust-land equivalent - should be a superset of Addr
     type Length: NumType + From<Self::Addr>;
     /// ccx_offset_t Rust-land equivalent - should be a superset of Addr
@@ -89,9 +89,10 @@ pub trait CompressedCapability: Sized {
 
     /* Misc */
     fn extract_bounds_bits(pesbt: Self::Addr) -> CcxBoundsBits;
-    fn set_bounds(cap: &mut CcxCap<Self>, req_base: Self::Addr, req_top: Self::FfiLength) -> bool;
+    fn set_bounds(cap: &mut CcxCap<Self>, req_base: Self::Addr, req_top: Self::Length) -> bool;
     fn is_representable_cap_exact(cap: &CcxCap<Self>) -> bool;
-    fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::FfiLength) -> CcxCap<Self>;
+    fn is_representable_new_addr(sealed: bool, base: Self::Addr, length: Self::Length, cursor: Self::Addr, new_cursor: Self::Addr) -> bool;
+    fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::Length) -> CcxCap<Self>;
     fn get_representable_length(length: Self::Length) -> Self::Length;
     fn get_required_alignment(length: Self::Length) -> Self::Length;
     fn get_alignment_mask(length: Self::Length) -> Self::Length;
@@ -134,10 +135,10 @@ impl<T: CompressedCapability> CcxCap<T> {
         (self.base(), self.top())
     }
     pub fn set_bounds_unchecked(&mut self, req_base: T::Addr, req_top: T::Length) -> bool {
-        T::set_bounds(self, req_base, T::FfiLength::from(req_top))
+        T::set_bounds(self, req_base, req_top)
     }
     pub fn set_bounds(&mut self, req_base: T::Addr, req_top: T::Length) -> Result<(),()> {
-        if T::set_bounds(self, req_base, T::FfiLength::from(req_top)) {
+        if T::set_bounds(self, req_base, req_top) {
             Ok(())
         } else {
             Err(())
@@ -150,6 +151,7 @@ impl<T: CompressedCapability> CcxCap<T> {
     pub fn set_address_unchecked(&mut self, addr: T::Addr) {
         self._cr_cursor = addr;
     }
+    /// TODO this function has no justification for existing, remove
     pub fn set_address_checked(&mut self, addr: T::Addr) -> Result<(),()> {
         // If addr < base or addr > top + 1, capability would be invalid.
         if addr < self.base() || 
@@ -213,6 +215,9 @@ impl<T: CompressedCapability> CcxCap<T> {
 
     pub fn is_exact(&self) -> bool {
         T::is_representable_cap_exact(self)
+    }
+    pub fn is_representable_with_new_addr(&self, new_addr: T::Addr) -> bool {
+        T::is_representable_new_addr(self.is_sealed(), self.base(), self.length(), self.address(), new_addr) 
     }
 
     /// Check if an arbitrary object's address range is in this capability's bounds.

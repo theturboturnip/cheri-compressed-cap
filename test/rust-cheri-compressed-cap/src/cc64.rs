@@ -33,6 +33,7 @@ extern "C" {
     fn cc64_extract_bounds_bits(pesbt: Addr) -> CcxBoundsBits;
     fn cc64_setbounds(cap: *mut Cap, req_base: Addr, req_top: Length) -> bool;
     fn cc64_is_representable_cap_exact(cap: *const Cap) -> bool;
+    fn cc64_is_representable_new_addr(sealed: bool, base: Addr, length: Length, cursor: Addr, new_cursor: Addr) -> bool;
     fn cc64_make_max_perms_cap(base: Addr, cursor: Addr, top: Length) -> Cap;
     fn cc64_get_representable_length(length: Length) -> Length;
     fn cc64_get_required_alignment(length: Length) -> Length;
@@ -124,6 +125,9 @@ impl CompressedCapability for Cc64 {
     }
     fn is_representable_cap_exact(cap: &Cap) -> bool {
         unsafe { cc64_is_representable_cap_exact(cap) }
+    }
+    fn is_representable_new_addr(sealed: bool, base: Self::Addr, length: Self::Length, cursor: Self::Addr, new_cursor: Self::Addr) -> bool {
+        unsafe { cc64_is_representable_new_addr(sealed, base, length, cursor, new_cursor) }
     }
     fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::Length) -> Cap {
         unsafe { cc64_make_max_perms_cap(base, cursor, top) }

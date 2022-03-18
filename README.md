@@ -61,6 +61,8 @@ The public C API for each type of capability includes: (X=capability width, so c
   - Returns true if the bounds exactly represents (min, max), or false if the bounds is larger than that
 - `bool ccx_is_representable_cap_exact(const ccx_cap_t* src_cap)`
   - Check if the range (base, top) for a capability is exactly encodable with the floating-point value
+- `bool ccx_is_representable_new_addr(bool sealed, ccx_addr_t base, ccx_length_t length, ccx_addr_t cursor, ccx_addr_t new_cursor)`
+  - Check if a capability with the given parameters would be representable with a change in cursor
 - `ccx_cap_t ccx_make_max_perms_cap(ccx_addr_t base, ccx_addr_t cursor, ccx_length_t top)`
   - Generate a capability with maximum permissions for a (base, top) bounds and an address within that bounds
 - `ccx_length_t ccx_get_representable_length(ccx_length_t length)`
