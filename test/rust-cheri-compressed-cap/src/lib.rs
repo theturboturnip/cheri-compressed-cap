@@ -16,6 +16,8 @@ impl NumType for i128 {}
 pub trait FfiNumType<T>: Default + Copy + Clone + Debug + Into<T> + From<T> {}
 impl FfiNumType<u64> for u64 {}
 impl FfiNumType<i64> for i64 {}
+impl FfiNumType<u128> for u128 {}
+impl FfiNumType<i128> for i128 {}
 
 /// Trait defining the public API for a specific capability type.
 /// A type X implementing CompressedCapability is equivalent to the API provided by `cheri_compressed_cap_X.h` in C,
@@ -267,9 +269,6 @@ pub struct CcxBoundsBits {
 
 mod c_funcs;
 
-mod ffi_num;
-pub use ffi_num::{FfiU128,FfiI128};
-
 // Include cc64 definitions
 mod cc64;
 // Export the CC64 instance of CompressedCapability, and the associated CcxCap type
@@ -305,9 +304,9 @@ mod tests {
 
         let base: u64 = 0x1000_0000_0000;
         let top: u128 = 0x2000_0000_0000;
-        let cap = crate::Cc128::make_max_perms_cap(base, base, top.into());
+        let cap = crate::Cc128::make_max_perms_cap(base, base, top);
         assert_eq!(cap.top(), top);
-        assert_eq!(cap._cr_top, top.into());
+        assert_eq!(cap._cr_top, top);
         // cr_base is stored directly after _cr_top, so if the sizes for FfiU128 and C u128 are different it will have been overwritten
         assert_eq!(cap.cr_base, base);
     }

@@ -1,11 +1,10 @@
 use crate::{CompressedCapability,CcxCap,CcxBoundsBits};
-use crate::ffi_num::{FfiU128,FfiI128};
 use crate::c_funcs::*;
 
 pub type Length = u128;
 pub type Offset = i128;
-pub type FfiLength = FfiU128;
-pub type FfiOffset = FfiI128;
+pub type FfiLength = u128;
+pub type FfiOffset = i128;
 pub type Addr = u64;
 
 pub type Cap = CcxCap<Cc128>;
@@ -90,24 +89,24 @@ impl CompressedCapability for Cc128 {
         unsafe { cc128_extract_bounds_bits(pesbt) }
     }
     fn set_bounds(cap: &mut Cap, req_base: Self::Addr, req_top: Self::Length) -> bool {
-        unsafe { cc128_setbounds(cap, req_base, req_top.into()) }
+        unsafe { cc128_setbounds(cap, req_base, req_top) }
     }
     fn is_representable_cap_exact(cap: &Cap) -> bool {
         unsafe { cc128_is_representable_cap_exact(cap) }
     }
     fn is_representable_new_addr(sealed: bool, base: Self::Addr, length: Self::Length, cursor: Self::Addr, new_cursor: Self::Addr) -> bool {
-        unsafe { cc128_is_representable_new_addr(sealed, base, length.into(), cursor, new_cursor) }
+        unsafe { cc128_is_representable_new_addr(sealed, base, length, cursor, new_cursor) }
     }
     fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::Length) -> Cap {
-        unsafe { cc128_make_max_perms_cap(base, cursor, top.into()) }
+        unsafe { cc128_make_max_perms_cap(base, cursor, top) }
     }
     fn get_representable_length(length: Self::Length) -> Self::Length {
-        unsafe { cc128_get_representable_length(length.into()).into() }
+        unsafe { cc128_get_representable_length(length) }
     }
     fn get_required_alignment(length: Self::Length) -> Self::Length {
-        unsafe { cc128_get_required_alignment(length.into()).into() }
+        unsafe { cc128_get_required_alignment(length) }
     }
     fn get_alignment_mask(length: Self::Length) -> Self::Length {
-        unsafe { cc128_get_alignment_mask(length.into()).into() }
+        unsafe { cc128_get_alignment_mask(length) }
     }
 }
