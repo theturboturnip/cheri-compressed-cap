@@ -3,7 +3,7 @@ use std::convert::TryInto;
 use crate::CcxCap;
 use crate::CompressedCapability;
 
-/// Trait exposing the utility functions used to specify CHERI-RISC-V behaviour in Tech Report 951
+/// Trait exposing the utility functions used to specify CHERI-RISC-V behaviour in Tech Report 951.
 /// Behaviour is derived from [the Sail specification](https://github.com/CTSRD-CHERI/sail-cheri-riscv)
 #[allow(non_snake_case)]
 pub trait CheriRVFuncs<T: CompressedCapability> {

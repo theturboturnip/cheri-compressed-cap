@@ -1,5 +1,5 @@
 use std::fmt::Debug;
-use num_traits::{Num, One};
+use num_traits::Num;
 
 /// Trait that the field types defined in CompressedCapability (Length, Offset, Addr) have to implement.
 /// This asserts that a) they're numeric, b) they support Default/Copy/Clone/Debug so that CcxCap can derive these.
@@ -34,10 +34,9 @@ pub trait CompressedCapability: Sized + Copy + Clone {
 
     /// ccx_length_t C-land equivalent - should have a memory layout identical to the C ccx_length_t.
     /// This is separate from Length because for 128-bit types the Rust and C versions may not look the same.
-    /// e.g. Rust u128 is not FFI-safe, the C version uses GCC extension 128-bit values
     type FfiLength: FfiNumType<Self::Length>;
     /// ccx_offset_t C-land equivalent - should have a memory layout identical to the C ccx_offset_t.
-    /// See [FfiLength] for an explanation.
+    /// See [Self::FfiLength] for an explanation.
     type FfiOffset: FfiNumType<Self::Offset>;
 
     /// CCX_PERM_GLOBAL equivalent
@@ -91,6 +90,9 @@ pub trait CompressedCapability: Sized + Copy + Clone {
 
     /* Misc */
     fn extract_bounds_bits(pesbt: Self::Addr) -> CcxBoundsBits;
+    /// Sets the top/bottom fields of the capability, and the PESBT field, to bounds that encompass (req_base, req_top).
+    /// Because a floating-point representation is used for bounds, it may not be able to set (req_base, req_top) exactly.
+    /// In this case it will return False.
     fn set_bounds(cap: &mut CcxCap<Self>, req_base: Self::Addr, req_top: Self::Length) -> bool;
     fn is_representable_cap_exact(cap: &CcxCap<Self>) -> bool;
     fn is_representable_new_addr(sealed: bool, base: Self::Addr, length: Self::Length, cursor: Self::Addr, new_cursor: Self::Addr) -> bool;
@@ -100,25 +102,70 @@ pub trait CompressedCapability: Sized + Copy + Clone {
     fn get_alignment_mask(length: Self::Length) -> Self::Length;
 }
 
-// TODO - Assuming _CC_REVERSE_PESBT_CURSOR_ORDER is *not* set
 #[repr(C)]
 #[derive(Debug,Copy,Clone)]
+/// Structure matching the C type `_cc_N(cap)`.
+/// Field order and layout is binary-compatible with the C version,
+/// assuming the C preprocessor macro `_CC_REVERSE_PESBT_CURSOR_ORDER` is *not* defined.
+/// 
+/// This is a plain-old-data type. It only supplies getters and setters, and does *not* guarantee any safety/correctness.
+/// For example, there are no added assertions or checks if you set the cursor to a value outside the bounds.
+/// However, the C FFI functions from [CompressedCapability] may have their own asserts.
+/// These are documented where possible.
+/// 
+/// *For a safe interface, use one of the [crate::wrappers]*
 pub struct CcxCap<T: CompressedCapability> {
+    /// If [Self::cr_tag] is 1, this is the capability's "cursor" i.e. the address it's actually pointing to.
+    /// The bottom half of the capability as stored in memory.
     _cr_cursor: T::Addr,
+    /// If [Self::cr_tag] is 1, this is the compressed capability metadata (permissions, otype, bounds, etc.)
+    /// The top half of the capability as stored in memory.
     cr_pesbt: T::Addr,
-    /// _cr_top is stored in memory in a C-compatible way, then converted to the Rust-y version when we manipulate it in Rust
+
+    /// The top of this capability's valid address range.
+    /// Derived from [Self::cr_pesbt].
+    /// As long as [Self::cr_tag] is 1, the getter/setter will ensure it matches.
     _cr_top: T::FfiLength,
+    /// The base of this capability's valid address range.
+    /// Derived from [Self::cr_pesbt].
+    /// As long as [Self::cr_tag] is 1, the getter/setter will ensure it matches.
     cr_base: T::Addr,
+    /// Tag - if 1, this is a valid capability, 0 it's just plain data
     cr_tag: u8,
+    /// 0 (false) if the bounds decode step was given an invalid capability.
+    /// Should be 1 (true) for all non-Morello capabilities. 
     cr_bounds_valid: u8,
+    /// The exponent used for storing the bounds.
+    /// Stored from various places, only used in Morello-exclusive function cap_bounds_uses_value().
     cr_exp: u8,
+    /// "Additional data stored by the caller."
+    /// Seemingly completely unused, essentially padding.
     cr_extra: u8,
 }
-/// Implements the C++-only member functions
-/// 
-/// TODO: Decide if this API is opinionated, or just for setting/getting fields.
-/// Would be best to have a separate `SafeCap` trait?
+
+/// Implements getters and setters similar to the C++-only member functions in the header.
 impl<T: CompressedCapability> CcxCap<T> {
+    /// Returns a `(tag, [cursor, pesbt])` tuple that represents all data required to 
+    /// store a capability in a register.
+    /// 
+    /// To store capabilities in memory, see [Self::mem_representation]
+    pub fn reg_representation(&self) -> (bool, [T::Addr; 2]) {
+        // This should be equal to self.cr_pesbt, the compress_raw function just returns that.
+        // We use this function in case that behaviour changes in the future, and for consistency with mem_representation.
+        let compressed_pesbt = T::compress_raw(self);
+        (self.tag(), [self._cr_cursor, compressed_pesbt])
+    }
+
+    /// Returns a `(tag, [cursor, pesbt])` tuple that represents all data required to 
+    /// store a capability in memory
+    /// 
+    /// To store capabilities in a register, see [Self::reg_representation]
+    pub fn mem_representation(&self) -> (bool, [T::Addr; 2]) {
+        // This should be equal to (self.cr_pesbt ^ SOME_XOR_MASK)
+        let compressed_pesbt = T::compress_mem(self);
+        (self.tag(), [self._cr_cursor, compressed_pesbt])
+    }
+
     pub fn tag(&self) -> bool {
         // cr_tag is interpreted as a boolean with C rules
         self.cr_tag != 0
@@ -136,15 +183,11 @@ impl<T: CompressedCapability> CcxCap<T> {
     pub fn bounds(&self) -> (T::Addr, T::Length) {
         (self.base(), self.top())
     }
+    /// Sets the base and top of this capability using C FFI function [CompressedCapability::set_bounds].
+    /// Updates the PEBST field correspondingly.
+    /// On non-Morello platforms, will fail with an assertion error if [Self::tag()] is not set.
     pub fn set_bounds_unchecked(&mut self, req_base: T::Addr, req_top: T::Length) -> bool {
         T::set_bounds(self, req_base, req_top)
-    }
-    pub fn set_bounds(&mut self, req_base: T::Addr, req_top: T::Length) -> Result<(),()> {
-        if T::set_bounds(self, req_base, req_top) {
-            Ok(())
-        } else {
-            Err(())
-        }
     }
 
     pub fn address(&self) -> T::Addr {
@@ -153,30 +196,21 @@ impl<T: CompressedCapability> CcxCap<T> {
     pub fn set_address_unchecked(&mut self, addr: T::Addr) {
         self._cr_cursor = addr;
     }
-    /// TODO this function has no justification for existing, remove
-    pub fn set_address_checked(&mut self, addr: T::Addr) -> Result<(),()> {
-        // If addr < base or addr > top + 1, capability would be invalid.
-        if addr < self.base() || 
-            ((self.top() + T::Length::one()) < addr.into()) {
-            return Err(())
-        }
-        self._cr_cursor = addr;
-        Ok(())
-    }
 
     pub fn offset(&self) -> T::Offset {
         let cursor: T::Offset = self._cr_cursor.into();
         let base: T::Offset = self.cr_base.into();
         (cursor - base).into()
     }
-    
     // TODO top64
+
     pub fn length(&self) -> T::Length {
         let top: T::Length = self._cr_top.into();
         let base: T::Length = self.cr_base.into();
         (top - base).into()
     }
     // TODO length64
+
     pub fn software_permissions(&self) -> u32 {
         T::get_uperms(self)
     }
@@ -215,17 +249,17 @@ impl<T: CompressedCapability> CcxCap<T> {
         T::update_flags(self, flags)
     }
 
+    /// Helper function for easily calling FFI function [CompressedCapability::is_representable_cap_exact]
+    /// on this capability.
+    /// Assertions are present in the C code, but should never be triggered.
     pub fn is_exact(&self) -> bool {
         T::is_representable_cap_exact(self)
     }
+    /// Helper function for easily calling FFI function [CompressedCapability::is_representable_new_addr]
+    /// on this capability.
+    /// Assertions are present in the C code, but should never be triggered.
     pub fn is_representable_with_new_addr(&self, new_addr: T::Addr) -> bool {
         T::is_representable_new_addr(self.is_sealed(), self.base(), self.length(), self.address(), new_addr) 
-    }
-
-    /// Check if an arbitrary object's address range is in this capability's bounds.
-    pub fn addr_in_bounds(&self, addr: T::Addr, obj_size: T::Addr) -> bool {
-        addr < self.base() || 
-            T::Length::from(addr + obj_size - T::Addr::one()) > self.top()
     }
 }
 /// Implements the `operator==` from cheri_compressed_cap_common.h
@@ -279,9 +313,7 @@ mod cc128;
 // Export the CC128 instance of CompressedCapability, and the associated CcxCap type
 pub use cc128::{Cc128,Cc128Cap};
 
-mod wrappers;
-// Export 64 and 128-bit instances of CheriRVFuncs
-pub use wrappers::CheriRVFuncs;
+pub mod wrappers;
 
 #[cfg(test)]
 mod tests {
