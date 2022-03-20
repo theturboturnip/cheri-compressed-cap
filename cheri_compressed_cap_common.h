@@ -740,25 +740,22 @@ _CCDEF _cc_addr_t _cc_N(cap_bounds_address)(const _cc_cap_t* cap) {
     return cursor;
 }
 
+#ifdef CC_IS_MORELLO
 // This should only be used on decompressed caps, as it relies on the exp field
 _CCDEF bool _cc_N(cap_bounds_uses_value)(const _cc_cap_t* cap) {
     return cap->cr_exp < (sizeof(_cc_addr_t) * 8) - _CC_N(FIELD_BOTTOM_ENCODED_SIZE);
 }
 
 _CCDEF bool _cc_N(cap_sign_change)(_cc_addr_t addr1, _cc_addr_t addr2) {
-#ifdef CC_IS_MORELLO
     return ((addr1 ^ addr2) & (1ULL << (63 - MORELLO_FLAG_BITS)));
-#else
-    (void)addr1;
-    (void)addr2;
-    return false;
-#endif
 }
 
 _CCDEF bool _cc_N(cap_sign_change_causes_unrepresentability)(const _cc_cap_t* cap, _cc_addr_t addr1,
                                                                     _cc_addr_t addr2) {
     return _cc_N(cap_sign_change)(addr1, addr2) && _cc_N(cap_bounds_uses_value)(cap);
 }
+#endif
+
 
 _CCDEF bool _cc_N(is_representable_with_addr)(const _cc_cap_t* cap, _cc_addr_t new_addr) {
     new_addr &= _CC_CURSOR_MASK;
