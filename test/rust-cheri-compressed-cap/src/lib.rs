@@ -103,7 +103,7 @@ pub trait CompressedCapability: Sized + Copy + Clone {
 }
 
 #[repr(C)]
-#[derive(Debug,Copy,Clone)]
+#[derive(Copy,Clone)]
 /// Structure matching the C type `_cc_N(cap)`.
 /// Field order and layout is binary-compatible with the C version,
 /// assuming the C preprocessor macro `_CC_REVERSE_PESBT_CURSOR_ORDER` is *not* defined.
@@ -290,6 +290,24 @@ impl<T: CompressedCapability> Default for CcxCap<T> {
             cr_exp: 0,
             cr_extra: 0,
         }
+    }
+}
+impl<T: CompressedCapability> Debug for CcxCap<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CcxCap")
+            .field("cr_cursor", &self._cr_cursor)
+            .field("cr_base", &self.cr_base)
+            .field("cr_top", &self._cr_top)
+            .field("cr_tag", &self.cr_tag)
+            .field("cr_bounds_valid", &self.cr_bounds_valid)
+            .field("cr_exp", &self.cr_exp)
+            .field("cr_extra", &self.cr_extra)
+            .field("permissions", &self.permissions())
+            .field("software_permissions", &self.software_permissions())
+            .field("otype", &self.otype())
+            .field("reserved_bits", &self.reserved_bits())
+            .field("flags", &self.flags())
+            .finish()
     }
 }
 
