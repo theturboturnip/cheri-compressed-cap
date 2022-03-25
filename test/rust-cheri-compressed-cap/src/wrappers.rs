@@ -2,6 +2,7 @@
 use std::convert::TryInto;
 use crate::CcxCap;
 use crate::CompressedCapability;
+use num_traits::WrappingAdd;
 
 /// Trait exposing the utility functions used to specify CHERI-RISC-V behaviour in Tech Report 951.
 /// Behaviour is derived from [the Sail specification](https://github.com/CTSRD-CHERI/sail-cheri-riscv)
@@ -99,7 +100,7 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
         (representable, c)
     }
     fn setCapOffset(c: &Self::Cap, offset: Self::CapAddrBits) -> (bool, Self::Cap) {
-        let new_address = c.base() + offset;
+        let new_address = c.base().wrapping_add(&offset);
         let representable = c.is_representable_with_new_addr(new_address);
 
         let mut c = *c;
@@ -107,7 +108,7 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
         (representable, c)
     }
     fn incCapOffset(c: &Self::Cap, offset_inc: Self::CapAddrBits) -> (bool, Self::Cap) {
-        let new_address = c.address() + offset_inc;
+        let new_address = c.address().wrapping_add(&offset_inc);
         let representable = c.is_representable_with_new_addr(new_address);
 
         let mut c = *c;

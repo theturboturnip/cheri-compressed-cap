@@ -1,9 +1,9 @@
 use std::fmt::Debug;
-use num_traits::Num;
+use num_traits::{Num,WrappingAdd};
 
 /// Trait that the field types defined in CompressedCapability (Length, Offset, Addr) have to implement.
 /// This asserts that a) they're numeric, b) they support Default/Copy/Clone/Debug so that CcxCap can derive these.
-pub trait NumType: Default + Num + Copy + Clone + Debug + PartialOrd + Ord {}
+pub trait NumType: Default + Num + WrappingAdd + Copy + Clone + Debug + PartialOrd + Ord {}
 impl NumType for u32 {}
 impl NumType for u64 {}
 impl NumType for u128 {}
