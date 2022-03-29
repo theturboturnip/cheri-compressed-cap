@@ -102,7 +102,7 @@ pub trait CompressedCapability: Sized + Copy + Clone {
     fn get_alignment_mask(length: Self::Length) -> Self::Length;
 }
 
-#[repr(C)]
+#[repr(C, align(16))]
 #[derive(Copy,Clone)]
 /// Structure matching the C type `_cc_N(cap)`.
 /// Field order and layout is binary-compatible with the C version,
@@ -344,6 +344,7 @@ mod tests {
 
         let cap = crate::Cc128::decompress_raw(0, 0, false);
         println!("{:?}", cap);
+        dbg!(cap.is_exact());
     }
 
     #[test]
