@@ -6,6 +6,16 @@ See Section 3.4.4 and 3.4.5 of [the instruction set architecture document](https
 ## Usage instructions
 Simply include `cheri_compressed_cap.h` in your C project and you can use the provided functions to compress and decompress your capabilities.
 
+## Usage instructions (Rust)
+Add the following dependency to your Cargo.toml.
+
+```rust-cheri-compressed-cap = { git = "https://github.com/theturboturnip/cheri-compressed-cap" }```
+
+This package assumes you are using a LLVM-based Rust compiler, and that you have a LLVM-based C compiler installed.
+
+To get comprehensive documentation, run
+```cargo doc --open```
+
 ## File Tree Documentation
 
 NOTE: This was written on 20-Feb-2022, may be out of date.

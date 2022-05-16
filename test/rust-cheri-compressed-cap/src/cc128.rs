@@ -1,3 +1,5 @@
+//! Implements [CompressedCapability] for the CC128 capability profile.
+
 use crate::{CompressedCapability,CcxCap,CcxBoundsBits};
 use crate::c_funcs::*;
 
@@ -10,11 +12,11 @@ pub type Addr = u64;
 pub type Cap = CcxCap<Cc128>;
 pub type Cc128Cap = Cap;
 
-/// Defines the CC64 capability profile as an implementation of the CompressedCapability trait.
+/// Defines the CC128 capability profile as an implementation of the CompressedCapability trait.
 /// 
-/// Empty enum, so it cannot be itself constructed. If you want a CC64 capability, instantiate CC64::Cap.
+/// Empty enum, so it cannot be itself constructed. If you want a CC128 capability, instantiate Cc128Cap.
 /// 
-/// Derives Debug, Copy, Clone so that CcxCap<Cc64> can derive them too.
+/// Derives Debug, Copy, Clone so that CcxCap<Cc128> can derive them too.
 #[derive(Debug,Copy,Clone)]
 pub enum Cc128 {}
 impl CompressedCapability for Cc128 {

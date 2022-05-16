@@ -1,27 +1,29 @@
+//! Import C functions for CC64,128.
+//! 
+//! We used to do this separately in cc64.rs and cc128.rs for the 64 and 128 bit versions.
+//! This seemed to cause multiple-definition link errors, so now we link all of them in one place.
+//! 
+//! Normally Rust warns us about using [u128], [i128] in FFI function arguments, because there isn't a well-defined ABI.
+//! We initially tried to create a repr(C) struct that matched the ABI, but this seems impossible.
+//! Clang (as of LLVM-13) defines [u128],[i128] as built-in types which are passed in two registers.
+//! This cannot be replicated exactly by passing a struct - see `clang/lib/CodeGen/TargetInfo.cpp: X86_64ABIInfo::classify()`,
+//! and [this godbolt example](https://godbolt.org/z/arn438z77).
+//! 
+//! Therefore, we instead use Rust native [u128], [i128] under the assumption that
+//! 1. Rust is being compiled under LLVM
+//! 2. Rust native u128, i128 are represented with LLVM's built-in 128-bit types
+//! 3. The C code is also compiled with LLVM, using the built-in 128-bit types.
+//! 4. The versions of LLVM used to compile Rust, C are ABI-compatible for 128-bit types.
+//! 
+//! Assumption 3 may not be necessary - maintaining compatibility with GCC is in Clang's interest, so GCC-compiled C may work just as well.
+//! Assumption 4 is difficult to check, we're taking it on faith that LLVM doesn't do anything silly in the future.
+//! 
+//! Under all these assumptions, we can safely ignore Rust's "improper ctypes" warning.
+
 use crate::CcxBoundsBits;
 use crate::cc128;
 use crate::cc64;
 
-/// Import C functions for CC64,128.
-/// 
-/// We used to do this separately in cc64.rs and cc128.rs for just the 64 and 128 bit versions respectively.
-/// This seemed to cause multiple-definition link errors, so now we link all of them in one place.
-/// 
-/// Normally Rust warns us about using [u128], [i128] in FFI function arguments, because there isn't a well-defined ABI.
-/// We initially tried to create a repr(C) struct that matched the ABI, but this seems impossible.
-/// Clang (as of LLVM-13) defines [u128],[i128] as built-in types which are passed in two registers.
-/// This cannot be replicated exactly by passing a struct - see `clang/lib/CodeGen/TargetInfo.cpp: X86_64ABIInfo::classify()`,
-/// and see (this godbolt example)[https://godbolt.org/z/arn438z77]
-/// Therefore, we instead use Rust native [u128], [i128] under the assumption that
-/// 1. Rust is being compiled under LLVM
-/// 2. Rust native u128, i128 are represented with LLVM's built-in 128-bit types
-/// 3. The C code is also compiled with LLVM, using the built-in 128-bit types.
-/// 4. The versions of LLVM used to compile Rust, C are ABI-compatible for 128-bit types.
-/// 
-/// Assumption 3 may not be necessary - maintaining compatibility with GCC is in Clang's interest, so GCC-compiled C may work just as well.
-/// Assumption 4 is difficult to check, we're taking it on faith that LLVM doesn't do anything silly in the future.
-/// 
-/// Under all these assumptions, we can safely ignore Rust's "improper ctypes" warning.
 #[link(name = "cheri_compressed_cap_lib")]
 #[allow(improper_ctypes)]
 extern "C" {

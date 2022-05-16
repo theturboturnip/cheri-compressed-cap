@@ -1,3 +1,5 @@
+//! Implements [CompressedCapability] for the CC64 capability profile.
+
 use crate::{CompressedCapability,CcxCap,CcxBoundsBits};
 use crate::c_funcs::*;
 

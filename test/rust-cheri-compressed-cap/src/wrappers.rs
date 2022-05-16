@@ -1,3 +1,4 @@
+//! Defines easy-to-use wrapper traits for [CompressedCapability] implementations
 
 use std::convert::TryInto;
 use crate::CcxCap;
