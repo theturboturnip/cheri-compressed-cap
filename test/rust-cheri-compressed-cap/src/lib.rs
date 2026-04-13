@@ -282,6 +282,7 @@ impl<T: CompressedCapability> CcxCap<T> {
     }
     /// Sets the base and top of this capability using C FFI function [CompressedCapability::set_bounds].
     /// Updates the PESBT field correspondingly.
+    /// Zeroes tag if out of bounds.
     /// On non-Morello platforms, will fail with an assertion error if [Self::tag()] is not set.
     pub fn set_bounds_unchecked(&mut self, req_len: T::Length) -> bool {
         T::set_bounds(self, req_len)

@@ -335,3 +335,138 @@ pub mod rvy {
         }
     }
 }
+
+pub mod cheri256 {
+    pub type Length = u128;
+    pub type Offset = u64;
+    pub type FfiLength = u64;
+    pub type FfiOffset = u64;
+    pub type Addr = u64;
+
+    #[repr(C)]
+    #[derive(Debug, Copy, Clone)]
+    pub struct Cap {
+        cr_cursor: u64,
+        cr_base: u64,
+        cr_length: u64,
+        cr_otype: u32,
+        cr_perms: u16,
+        cr_uperms: u16,
+        cr_tag: u8,
+        cr_flags: u8,
+        cr_reserved: u8,
+    }
+    impl Cap {
+        // TODO in-memory and in-register representations with {de,}compress_256cap() C function
+        
+        pub const MAX_REPRESENTABLE_OTYPE: u32 = (1u32 << 24) - 1;
+        pub const OTYPE_UNSEALED: u32 = Self::MAX_REPRESENTABLE_OTYPE - 0;
+        pub const OTYPE_SENTRY: u32 = Self::MAX_REPRESENTABLE_OTYPE - 1;
+
+        pub fn tag(&self) -> bool {
+            // cr_tag is interpreted as a boolean with C rules
+            self.cr_tag != 0
+        }
+        pub fn set_tag(&mut self, tag: bool) {
+            self.cr_tag = if tag { 1 } else { 0 };
+        }
+
+        pub fn base(&self) -> Addr {
+            self.cr_base
+        }
+        pub fn top(&self) -> Length {
+            self.cr_base as u128 + self.cr_length as u128
+        }
+        pub fn bounds(&self) -> (Addr, Length) {
+            (self.base(), self.top())
+        }
+        /// Sets the base and top of this capability using C FFI function [CompressedCapability::set_bounds].
+        /// Returns true always, because always representable
+        pub fn set_bounds_unchecked(&mut self, req_len: u64) -> bool {
+            if self.cr_length < req_len {
+                self.cr_tag = 0;
+            }
+            self.cr_base = self.cr_cursor;
+            self.cr_length = req_len;
+            true
+        }
+
+        pub fn address(&self) -> Addr {
+            self.cr_cursor
+        }
+        pub fn set_address_unchecked(&mut self, addr: Addr) {
+            self.cr_cursor = addr;
+        }
+
+        pub fn offset(&self) -> Offset {
+            let cursor: Offset = self.cr_cursor.into();
+            let base: Offset = self.cr_base.into();
+            (cursor - base).into()
+        }
+        // TODO top64
+
+        pub fn length(&self) -> Length {
+            self.length().into()
+        }
+        // TODO length64
+
+        pub fn software_permissions(&self) -> u16 {
+            self.cr_uperms
+        }
+        pub fn set_software_permissions(&mut self, uperms: u16) {
+            self.cr_uperms = uperms
+        }
+
+        pub fn permissions(&self) -> u16 {
+            self.cr_perms
+        }
+        pub fn set_permissions(&mut self, perms: u16) {
+            self.cr_perms = perms
+        }
+
+        pub fn otype(&self) -> u32 {
+            self.cr_otype
+        }
+        pub fn is_sealed(&self) -> bool {
+            self.otype() != Self::OTYPE_UNSEALED
+        }
+        pub fn set_otype(&mut self, otype: u32) {
+            self.cr_otype = otype
+        }
+
+        pub fn reserved_bits(&self) -> u8 {
+            self.cr_reserved
+        }
+        pub fn set_reserved_bits(&mut self, bits: u8) {
+            self.cr_reserved = bits
+        }
+
+        pub fn flags(&self) -> u8 {
+            self.cr_flags
+        }
+        pub fn set_flags(&mut self, flags: u8) {
+            self.cr_flags = flags
+        }
+
+        pub fn is_exact(&self) -> bool {
+            true
+        }
+        pub fn is_representable_with_new_addr(&self, new_addr: Addr) -> bool {
+            true
+        }
+
+        pub fn make_max_perms_cap(base: Addr, cursor: Addr, top: Addr) -> Self {
+            Self {
+                cr_cursor: cursor,
+                cr_base: base,
+                cr_length: top - base,
+                cr_otype: 0,
+                cr_perms: 0,
+                cr_uperms: 0,
+                cr_tag: if (base <= top) && (base <= cursor) && (cursor <= top) { 1 } else { 0 },
+                cr_flags: 0,
+                cr_reserved: 0,
+            }
+        }
+    }
+}
