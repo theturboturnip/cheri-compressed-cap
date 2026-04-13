@@ -1,4 +1,4 @@
-//! Implements [CompressedCapability] for the CC128 capability profile.
+//! Implements [CompressedCapability] for CHERIv9 128-bit capabilities.
 
 use crate::{CompressedCapability,CcxCap,CcxBoundsBits};
 use crate::c_funcs::*;
