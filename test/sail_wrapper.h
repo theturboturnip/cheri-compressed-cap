@@ -29,72 +29,30 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#define _CC_TEST_ENABLE_DEPRECATED // TODO: port away from deprecated API
 #include "../cheri_compressed_cap.h"
+
+#define SAIL_WRAPPER_FORMAT_LOWER 64
+#include "sail_wrapper_api.inc"
+#undef SAIL_WRAPPER_FORMAT_LOWER
+
+#define SAIL_WRAPPER_FORMAT_LOWER 64r
+#include "sail_wrapper_api.inc"
+#undef SAIL_WRAPPER_FORMAT_LOWER
+
+#define SAIL_WRAPPER_FORMAT_LOWER 128
+#include "sail_wrapper_api.inc"
+#undef SAIL_WRAPPER_FORMAT_LOWER
+
+#define SAIL_WRAPPER_FORMAT_LOWER 128m
+#include "sail_wrapper_api.inc"
+#undef SAIL_WRAPPER_FORMAT_LOWER
+
+#define SAIL_WRAPPER_FORMAT_LOWER 128r
+#include "sail_wrapper_api.inc"
+#undef SAIL_WRAPPER_FORMAT_LOWER
+
+#define _cc_sail(name) _CC_CONCAT(sail_, _CC_CONCAT(name, _CC_CONCAT(_, CC_FORMAT_LOWER)))
 #ifdef __cplusplus
-extern "C" {
-#endif
-void sail_decode_128_mem(cc128_addr_t pesbt, cc128_addr_t cursor, bool tag, cc128_cap_t* cdp);
-void sail_decode_128_raw(cc128_addr_t pesbt, cc128_addr_t cursor, bool tag, cc128_cap_t* cdp);
-struct cc128_bounds_bits sail_extract_bounds_bits_128(cc128_addr_t pesbt);
-cc128_addr_t sail_compress_128_raw(const cc128_cap_t* csp);
-cc128_addr_t sail_compress_128_mem(const cc128_cap_t* csp);
-cc128_addr_t sail_null_pesbt_128(void);
-cc128_addr_t sail_representable_mask_128(cc128_addr_t len);
-cc128_addr_t sail_representable_length_128(cc128_addr_t len);
-bool sail_setbounds_128(cc128_cap_t* cap, cc128_addr_t req_base, cc128_length_t req_top);
-
-#ifndef CC_IS_MORELLO
-
-void sail_decode_64_mem(cc64_addr_t pesbt, cc64_addr_t cursor, bool tag, cc64_cap_t * cdp);
-void sail_decode_64_raw(cc64_addr_t pesbt, cc64_addr_t cursor, bool tag, cc64_cap_t* cdp);
-struct cc64_bounds_bits sail_extract_bounds_bits_64(uint32_t pesbt);
-cc64_addr_t sail_compress_64_raw(const cc64_cap_t* csp);
-cc64_addr_t sail_compress_64_mem(const cc64_cap_t* csp);
-cc64_addr_t sail_null_pesbt_64(void);
-cc64_addr_t sail_representable_mask_64(cc64_addr_t len);
-cc64_addr_t sail_representable_length_64(cc64_addr_t len);
-bool sail_setbounds_64(cc64_cap_t* cap, cc64_addr_t req_base, cc64_length_t req_top);
-
-#endif
-
-#ifdef __cplusplus
-}
-
-class TestAPI128 : public CompressedCap128 {
-public:
-    static inline void sail_decode_mem(addr_t pesbt, addr_t cursor, bool tag, cap_t* cdp) {
-        return sail_decode_128_mem(pesbt, cursor, tag, cdp);
-    }
-    static inline void sail_decode_raw(addr_t pesbt, addr_t cursor, bool tag, cap_t* cdp) {
-        return sail_decode_128_raw(pesbt, cursor, tag, cdp);
-    }
-    static inline bounds_bits sail_extract_bounds_bits(addr_t pesbt) { return sail_extract_bounds_bits_128(pesbt); }
-    static inline addr_t sail_compress_raw(const cap_t* csp) { return sail_compress_128_raw(csp); }
-    static inline addr_t sail_compress_mem(const cap_t* csp) { return sail_compress_128_mem(csp); }
-    static inline addr_t sail_null_pesbt() { return sail_null_pesbt_128(); }
-    static inline addr_t sail_representable_mask(addr_t len) { return sail_representable_mask_128(len); }
-    static inline addr_t sail_representable_length(addr_t len) { return sail_representable_length_128(len); }
-    static inline bool sail_setbounds(cap_t* cap, addr_t req_base, length_t req_top) {
-        return sail_setbounds_128(cap, req_base, req_top);
-    }
-};
-
-class TestAPI64 : public CompressedCap64 {
-public:
-    static inline void sail_decode_mem(addr_t pesbt, addr_t cursor, bool tag, cap_t* cdp) {
-        return sail_decode_64_mem(pesbt, cursor, tag, cdp);
-    }
-    static inline void sail_decode_raw(addr_t pesbt, addr_t cursor, bool tag, cap_t* cdp) {
-        return sail_decode_64_raw(pesbt, cursor, tag, cdp);
-    }
-    static inline bounds_bits sail_extract_bounds_bits(addr_t pesbt) { return sail_extract_bounds_bits_64(pesbt); }
-    static inline addr_t sail_compress_raw(const cap_t* csp) { return sail_compress_64_raw(csp); }
-    static inline addr_t sail_compress_mem(const cap_t* csp) { return sail_compress_64_mem(csp); }
-    static inline addr_t sail_null_pesbt() { return sail_null_pesbt_64(); }
-    static inline addr_t sail_representable_mask(addr_t len) { return sail_representable_mask_64(len); }
-    static inline addr_t sail_representable_length(addr_t len) { return sail_representable_length_64(len); }
-    static inline bool sail_setbounds(cap_t* cap, addr_t req_base, length_t req_top) {
-        return sail_setbounds_64(cap, req_base, req_top);
-    }
-};
+#define TestAPICC _CC_CONCAT(TestAPI, CC_FORMAT_LOWER)
 #endif
