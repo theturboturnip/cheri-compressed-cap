@@ -425,16 +425,6 @@ mod c_funcs;
 
 pub mod caps;
 
-// Include cc64 definitions
-pub use caps::cc64;
-// Export the CC64 instance of CompressedCapability, and the associated CcxCap type
-pub use cc64::{Cc64,Cc64Cap};
-
-// Include cc128 definitions
-pub use caps::cc128;
-// Export the CC128 instance of CompressedCapability, and the associated CcxCap type
-pub use cc128::{Cc128,Cc128Cap};
-
 pub mod wrappers;
 
 #[cfg(test)]
@@ -443,10 +433,10 @@ mod tests {
     // TODO port some tests from the C tests?
     #[test]
     fn test_printing() {
-        let cap = crate::Cc64::decompress_raw(0, 0, false);
+        let cap = crate::caps::cheriv9::cc64::Cc64::decompress_raw(0, 0, false);
         println!("{:?}", cap);
 
-        let cap = crate::Cc128::decompress_raw(0, 0, false);
+        let cap = crate::caps::cheriv9::cc128::Cc128::decompress_raw(0, 0, false);
         println!("{:?}", cap);
         dbg!(cap.is_exact());
     }
@@ -459,7 +449,7 @@ mod tests {
 
         let base: u64 = 0x1000_0000_0000;
         let top: u128 = 0x2000_0000_0000;
-        let cap = crate::Cc128::make_max_perms_cap(base, base, top);
+        let cap = crate::caps::cheriv9::cc128::Cc128::make_max_perms_cap(base, base, top);
         assert_eq!(cap.top(), top);
         assert_eq!(cap._cr_top, top);
         // cr_base is stored directly after _cr_top, so if the sizes for FfiU128 and C u128 are different it will have been overwritten

@@ -4,7 +4,10 @@ fn main() {
     println!("cargo:rerun-if-changed=../../cheri_compressed_cap_common.h");
     println!("cargo:rerun-if-changed=../../cheri_compressed_cap_macros.h");
     println!("cargo:rerun-if-changed=../../cheri_compressed_cap_64.h");
+    println!("cargo:rerun-if-changed=../../cheri_compressed_cap_64r.h");
     println!("cargo:rerun-if-changed=../../cheri_compressed_cap_128.h");
+    println!("cargo:rerun-if-changed=../../cheri_compressed_cap_128r.h");
+    println!("cargo:rerun-if-changed=../../cheri_compressed_cap_128m.h");
 
     // Compile cheri_compressed_cap.c
     let mut builder = cc::Build::new();

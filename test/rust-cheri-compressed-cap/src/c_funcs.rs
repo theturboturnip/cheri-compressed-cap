@@ -1,7 +1,4 @@
-//! Import C functions for CC64,128.
-//! 
-//! We used to do this separately in cc64.rs and cc128.rs for the 64 and 128 bit versions.
-//! This seemed to cause multiple-definition link errors, so now we link all of them in one place.
+//! Import C functions.
 //! 
 //! Normally Rust warns us about using [u128], [i128] in FFI function arguments, because there isn't a well-defined ABI.
 //! We initially tried to create a repr(C) struct that matched the ABI, but this seems impossible.
@@ -21,13 +18,11 @@
 //! Under all these assumptions, we can safely ignore Rust's "improper ctypes" warning.
 
 use crate::CcxBoundsBits;
-use crate::cc128;
-use crate::cc64;
 
 use paste::paste;
 
 macro_rules! cap_c_funcs {
-    ($ver:ident, $mod:ident) => { paste! {
+    ($ver:ident, $mod:path) => { paste! {
         pub(crate) fn [<$ver _compress_raw>](src_cap: *const $mod::Cap) -> $mod::Addr;
         pub(crate) fn [<$ver _decompress_raw>](pesbt: $mod::Addr, cursor: $mod::Addr, tag: bool, out_cap: *mut $mod::Cap);
         pub(crate) fn [<$ver _compress_mem>](src_cap: *const $mod::Cap) -> $mod::Addr;
@@ -62,10 +57,10 @@ macro_rules! cap_c_funcs {
 #[link(name = "cheri_compressed_cap_lib")]
 #[allow(improper_ctypes)]
 extern "C" {
-    cap_c_funcs!{cc64, cc64}
-    // cap_c_funcs!{cc64r}
-    cap_c_funcs!{cc128, cc128}
-    // cap_c_funcs!{cc128r}
-    // cap_c_funcs!{cc128m}
+    cap_c_funcs!{cc64, crate::caps::cheriv9::cc64}
+    cap_c_funcs!{cc64r, crate::caps::rvy::cc64}
+    cap_c_funcs!{cc128, crate::caps::cheriv9::cc128}
+    cap_c_funcs!{cc128r, crate::caps::rvy::cc128}
+    cap_c_funcs!{cc128m, crate::caps::morello}
     // TODO 256
 }
