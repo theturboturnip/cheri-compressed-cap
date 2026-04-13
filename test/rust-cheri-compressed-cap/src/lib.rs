@@ -286,6 +286,9 @@ impl<T: CompressedCapability> CcxCap<T> {
     pub fn set_bounds_unchecked(&mut self, req_len: T::Length) -> bool {
         T::set_bounds(self, req_len)
     }
+
+    pub fn extract_bounds_bits(&self) -> CcxBoundsBits {
+        T::extract_bounds_bits(self.cr_pesbt)
     }
 
     pub fn address(&self) -> T::Addr {
@@ -416,10 +419,10 @@ impl<T: CompressedCapability> Debug for CcxCap<T> {
 /// Represents a floating-point encoded capability bounds.
 #[repr(C)]
 pub struct CcxBoundsBits {
-    b: u16,
-    t: u16,
-    e: u8,
-    ie: bool,
+    pub b: u16,
+    pub t: u16,
+    pub e: u8,
+    pub ie: bool,
 }
 
 // Link the C functions
