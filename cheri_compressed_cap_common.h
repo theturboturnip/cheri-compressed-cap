@@ -37,23 +37,6 @@
 
 #include <stdbool.h>
 
-// If this imported in multiple files, functions should prefixed with `_CCDEF`.
-// static = only visible to functions in the same "translation unit" (file) 
-// inline = a hint (usually ignored) for the compiler to inline the functions for performance.
-// It's important to define these as static, as otherwise the compiler would complain that the functions
-// are defined multiple times in the various C files that included this header.
-// See https://stackoverflow.com/a/7767858, https://en.cppreference.com/w/c/language/inline
-//
-// But if this is being included to generate a C library, we need to prefix the functions with `extern`.
-// extern = external linkage, i.e. all other code linked with this "translation unit" can see it and refer to it.
-// The _CCDEF macro expands to `_CCDEF` by default, or `extern` if CC_EXPORT_FUNCS has been #defined.
-#undef _CCDEF
-#ifdef CC_EXPORT_FUNCS
-#define _CCDEF extern
-#else
-#define _CCDEF _CCDEF
-#endif
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 enum {
