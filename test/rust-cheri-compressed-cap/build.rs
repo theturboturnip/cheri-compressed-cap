@@ -8,10 +8,12 @@ fn main() {
 
     // Compile cheri_compressed_cap.c
     let mut builder = cc::Build::new();
-    builder.file("../../cheri_compressed_cap_lib.c")
+    builder
+        .file("../../cheri_compressed_cap_lib.c")
         .flag_if_supported("-Wno-unused-function")
+        // .flag_if_supported("-fno-ms-compatibility")
         .compiler("clang");
-    
+
     if !builder.get_compiler().is_like_clang() {
         panic!("For interoperability between Rust and C 128-bit types, we assume the Rust and C are both compiled with LLVM.");
     }

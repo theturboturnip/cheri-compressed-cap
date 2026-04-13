@@ -13,6 +13,10 @@ Add the following dependency to your Cargo.toml.
 ```rust-cheri-compressed-cap = { git = "https://github.com/theturboturnip/cheri-compressed-cap" }```
 
 This package assumes you are using a LLVM-based Rust compiler, and that you have a LLVM-based C compiler installed.
+I have not managed to get this working on Windows:
+- `cheri_compressed_cap_common.h` relies on standard C behaviour that expands enums to 64-bit if needed.
+- MSVC does not comply with this behaviour, and Clang running on Windows tries to emulate this when building for `x86_64-pc-windows-msvc` even with the `-fno-ms-compatibility` flag turned on.
+- Switching to the `x86_64-pc-windows-gnu` target results in another compile failure due to a lack of `string.h`, which is likely a skill issue on my part, but I gave up anyway
 
 To get comprehensive documentation, run
 ```cargo doc --open```
