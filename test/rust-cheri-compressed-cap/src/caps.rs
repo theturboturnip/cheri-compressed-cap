@@ -55,8 +55,8 @@ macro_rules! ccap_impl_funcs {
         fn extract_bounds_bits(pesbt: Self::Addr) -> CcxBoundsBits {
             unsafe { [<$ver _extract_bounds_bits>](pesbt) }
         }
-        fn set_bounds(cap: &mut Cap, req_base: Self::Addr, req_top: Self::Length) -> bool {
-            unsafe { [<$ver _setbounds>](cap, req_base, req_top) }
+        fn set_bounds(cap: &mut Cap, req_len: Self::Length) -> bool {
+            unsafe { [<$ver _setbounds>](cap, req_len) }
         }
         fn is_representable_cap_exact(cap: &Cap) -> bool {
             unsafe { [<$ver _is_representable_cap_exact>](cap) }

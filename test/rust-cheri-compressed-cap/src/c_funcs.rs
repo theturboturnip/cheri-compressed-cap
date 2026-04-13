@@ -44,7 +44,7 @@ macro_rules! cap_c_funcs {
 
         /* Misc */
         pub(crate) fn [<$ver _extract_bounds_bits>](pesbt: $mod::Addr) -> CcxBoundsBits;
-        pub(crate) fn [<$ver _setbounds>](cap: *mut $mod::Cap, req_base: $mod::Addr, req_top: $mod::FfiLength) -> bool;
+        pub(crate) fn [<$ver _setbounds>](cap: *mut $mod::Cap, req_len: $mod::FfiLength) -> bool;
         pub(crate) fn [<$ver _is_representable_cap_exact>](cap: *const $mod::Cap) -> bool;
         pub(crate) fn [<$ver _is_representable_new_addr>](sealed: bool, base: $mod::Addr, length: $mod::FfiLength, cursor: $mod::Addr, new_cursor: $mod::Addr) -> bool;
         pub(crate) fn [<$ver _make_max_perms_cap>](base: $mod::Addr, cursor: $mod::Addr, top: $mod::FfiLength) -> $mod::Cap;

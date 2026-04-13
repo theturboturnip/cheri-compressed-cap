@@ -12,7 +12,7 @@ pub trait CheriRVFuncs<T: CompressedCapability> {
     type Cap;
 
     type CapAddrInt;
-    type CapAddrBits;
+    type CapAddrBits: Into<Self::CapLen>;
     type CapLen;
 
     type OType;
@@ -86,7 +86,8 @@ impl<T: CompressedCapability> CheriRVFuncs<T> for T where T::Offset: TryInto<T::
     // These can return (false, cap); `cap` may not preserve bounds (???)
     fn setCapBounds(c: &Self::Cap, base: Self::CapAddrBits, top: Self::CapLen) -> (bool, Self::Cap) {
         let mut c = *c;
-        c.set_bounds_unchecked(base, top);
+        c.set_address_unchecked(base);
+        c.set_bounds_unchecked(top - (base.into()));
         (c.is_exact(), c)
     }
     fn setCapAddr(c: &Self::Cap, addr: Self::CapAddrBits) -> (bool, Self::Cap) {

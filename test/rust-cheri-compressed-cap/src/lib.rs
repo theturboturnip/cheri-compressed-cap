@@ -161,12 +161,12 @@ pub trait CompressedCapability: Sized + Copy + Clone {
     /// Extracts the floating-point encoded bounds from [CcxCap::cr_pesbt]
     fn extract_bounds_bits(pesbt: Self::Addr) -> CcxBoundsBits;
 
-    /// Sets the capability bounds to bounds that encompass (req_base, req_top).
+    /// Sets the capability bounds to bounds that encompass ((cursor), (cursor+req_len)).
     /// Because a floating-point representation is used for bounds, it may not be able to set (req_base, req_top) exactly.
     /// In this case it will return False.
     /// 
     /// Updates [CcxCap::cr_pesbt], [CcxCap::_cr_top], [CcxCap::cr_base]
-    fn set_bounds(cap: &mut CcxCap<Self>, req_base: Self::Addr, req_top: Self::Length) -> bool;
+    fn set_bounds(cap: &mut CcxCap<Self>, req_len: Self::Length) -> bool;
     
     /// Check if the range ([CcxCap::cr_base], [CcxCap::_cr_top]) can be encoded exactly with the floating-point encoding
     fn is_representable_cap_exact(cap: &CcxCap<Self>) -> bool;
@@ -174,7 +174,8 @@ pub trait CompressedCapability: Sized + Copy + Clone {
     /// Check if a capability with the parameters `sealed, base, length, cursor` would be representable if the cursor were updated to `new_cursor`. 
     fn is_representable_new_addr(sealed: bool, base: Self::Addr, length: Self::Length, cursor: Self::Addr, new_cursor: Self::Addr) -> bool;
 
-    /// Generate a capability for `base, top, cursor` with the maximum available permissions
+    /// Generate a capability for `base, top, cursor` with the maximum available permissions.
+    /// Panics if the bounds are not exactly representable
     fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::Length) -> CcxCap<Self>;
 
     /// Get the minimum representable length greater than or equal to `length`.
@@ -282,8 +283,9 @@ impl<T: CompressedCapability> CcxCap<T> {
     /// Sets the base and top of this capability using C FFI function [CompressedCapability::set_bounds].
     /// Updates the PESBT field correspondingly.
     /// On non-Morello platforms, will fail with an assertion error if [Self::tag()] is not set.
-    pub fn set_bounds_unchecked(&mut self, req_base: T::Addr, req_top: T::Length) -> bool {
-        T::set_bounds(self, req_base, req_top)
+    pub fn set_bounds_unchecked(&mut self, req_len: T::Length) -> bool {
+        T::set_bounds(self, req_len)
+    }
     }
 
     pub fn address(&self) -> T::Addr {

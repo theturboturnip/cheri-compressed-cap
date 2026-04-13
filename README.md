@@ -71,9 +71,9 @@ The public C API for each type of capability includes: (X=capability width, so c
 
 - `ccx_bounds_bits extract_bounds_bits(ccx_addr_t pesbt)`
   - Extract the floating-point encoded bounds from pesbt
-- `bool ccx_setbounds(ccx_cap_t* dest_cap, ccx_addr_t req_base, ccx_length_t req_top)`
-  - Set the bounds for a capability to one which includes the range (min, max)
-  - Returns true if the bounds exactly represents (min, max), or false if the bounds is larger than that
+- `bool ccx_setbounds(ccx_cap_t* dest_cap, ccx_length_t req_len)`
+  - Set the bounds for a capability to one which includes the range (dest_cap.cursor, dest_cap.cursor+req_len)
+  - Returns true if the bounds is exactly represented, or false if the bounds is larger than that
 - `bool ccx_is_representable_cap_exact(const ccx_cap_t* src_cap)`
   - Check if the range (base, top) for a capability is exactly encodable with the floating-point value
 - `bool ccx_is_representable_new_addr(bool sealed, ccx_addr_t base, ccx_length_t length, ccx_addr_t cursor, ccx_addr_t new_cursor)`
