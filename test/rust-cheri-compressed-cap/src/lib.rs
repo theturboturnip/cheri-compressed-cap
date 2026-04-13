@@ -368,7 +368,7 @@ impl<T: CompressedCapability> PartialEq for CcxCap<T> {
 }
 impl<T: CompressedCapability> Eq for CcxCap<T> {}
 /// Equivalent to initialization pattern used in tests:
-/// ```
+/// ```c
 /// ccx_cap_t value;
 /// memset(&value, 0, sizeof(value));
 /// ```
@@ -423,13 +423,15 @@ pub struct CcxBoundsBits {
 // Link the C functions
 mod c_funcs;
 
+pub mod caps;
+
 // Include cc64 definitions
-mod cc64;
+pub use caps::cc64;
 // Export the CC64 instance of CompressedCapability, and the associated CcxCap type
 pub use cc64::{Cc64,Cc64Cap};
 
 // Include cc128 definitions
-mod cc128;
+pub use caps::cc128;
 // Export the CC128 instance of CompressedCapability, and the associated CcxCap type
 pub use cc128::{Cc128,Cc128Cap};
 
