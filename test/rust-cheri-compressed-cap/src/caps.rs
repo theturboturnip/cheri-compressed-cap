@@ -406,7 +406,7 @@ pub mod cheri256 {
         // TODO top64
 
         pub fn length(&self) -> Length {
-            self.length().into()
+            self.cr_length.into()
         }
         // TODO length64
 
