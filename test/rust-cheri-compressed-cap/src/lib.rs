@@ -1,5 +1,5 @@
+use num_traits::{Num, WrappingAdd};
 use std::fmt::Debug;
-use num_traits::{Num,WrappingAdd};
 
 /// Trait that the field types defined in CompressedCapability (Length, Offset, Addr) have to implement.
 /// This asserts that a) they're numeric, b) they support Default/Copy/Clone/Debug so that CcxCap can derive these.
@@ -26,7 +26,7 @@ impl FfiNumType<i128> for i128 {}
 /// Trait defining an Rust version of the public API for a specific capability type.
 /// A type X implementing CompressedCapability is equivalent to the API provided by `cheri_compressed_cap_X.h` in C,
 /// where `ccx_cap_t` is equivalent to [CcxCap].
-/// 
+///
 /// It is not recommended to call the trait functions directly.
 /// Instead, use one of the [crate::wrappers].
 pub trait CompressedCapability: Sized + Copy + Clone {
@@ -73,7 +73,7 @@ pub trait CompressedCapability: Sized + Copy + Clone {
 
     /// Generate the `pesbt` bits for a capability (the top bits, which encode permissions, object type, compressed bounds, etc.)
     /// This transformation can be undone with [Self::decompress_raw].
-    /// 
+    ///
     /// This is presumably intended for storing compressed capabilities in e.g. registers.
     /// Its counterpart for storing compressed capabilities in memory is [Self::compress_mem].
     fn compress_raw(src_cap: &CcxCap<Self>) -> Self::Addr;
@@ -84,7 +84,7 @@ pub trait CompressedCapability: Sized + Copy + Clone {
 
     /// Generate the `pesbt` bits for a capability (the top bits, which encode permissions, object type, compressed bounds, etc.)
     /// This transformation can be undone with [Self::decompress_mem].
-    /// 
+    ///
     /// This is presumably intended for storing compressed capabilities in memory.
     /// It is equivalent to calling [Self::compress_raw] and XOR-ing the result with a "null mask".
     /// Presumably this transformation prevents all-zero data from being interpreted as a capability?
@@ -92,7 +92,7 @@ pub trait CompressedCapability: Sized + Copy + Clone {
 
     /// Decompress a (pesbt, cursor) pair into a capability.
     /// This transformation can be undone with [Self::compress_mem].
-    /// 
+    ///
     /// This is equivalent to XOR-ing the pesbt with a "null mask" and calling [Self::decompress_raw].
     /// Presumably the null mask prevents all-zero data from being interpreted as a capability?
     fn decompress_mem(pesbt: Self::Addr, cursor: Self::Addr, tag: bool) -> CcxCap<Self>;
@@ -100,59 +100,59 @@ pub trait CompressedCapability: Sized + Copy + Clone {
     /* Getters */
 
     /// Gets the user/software-defined permissions from the [CcxCap::cr_pesbt] field
-    /// 
+    ///
     /// Counterpart: [Self::update_uperms]
     fn get_uperms(cap: &CcxCap<Self>) -> u32;
 
     /// Gets the hardware-defined permissions from the [CcxCap::cr_pesbt] field
-    /// 
+    ///
     /// Counterpart: [Self::update_perms]
     fn get_perms(cap: &CcxCap<Self>) -> u32;
 
     /// Gets the object type from the [CcxCap::cr_pesbt] field
-    /// 
+    ///
     /// Counterpart: [Self::update_otype]
     fn get_otype(cap: &CcxCap<Self>) -> u32;
 
     /// Gets the reserved bits from the [CcxCap::cr_pesbt] field
-    /// 
+    ///
     /// Counterpart: [Self::update_reserved]
     fn get_reserved(cap: &CcxCap<Self>) -> u8;
 
     /// Gets the flags from the [CcxCap::cr_pesbt] field
-    /// 
+    ///
     /// Counterpart: [Self::update_flags]
     fn get_flags(cap: &CcxCap<Self>) -> u8;
 
     /*
     Updaters
-    
-    The C API updaters all use Self::Addr for the type of `value`. 
+
+    The C API updaters all use Self::Addr for the type of `value`.
     I've changed these to use the types from corresponding `get` functions.
     */
 
     /// Updates the user/software-defined permissions field in [CcxCap::cr_pesbt]
-    /// 
+    ///
     /// Counterpart: [Self::get_uperms]
     fn update_uperms(cap: &mut CcxCap<Self>, value: u32);
 
     /// Updates the hardware-defined permissions field in [CcxCap::cr_pesbt]
-    /// 
+    ///
     /// Counterpart: [Self::get_perms]
     fn update_perms(cap: &mut CcxCap<Self>, value: u32);
 
     /// Updates the object type field in [CcxCap::cr_pesbt]
-    /// 
+    ///
     /// Counterpart: [Self::get_otype]
     fn update_otype(cap: &mut CcxCap<Self>, value: u32);
 
     /// Updates the reserved field in [CcxCap::cr_pesbt]
-    /// 
+    ///
     /// Counterpart: [Self::get_reserved]
     fn update_reserved(cap: &mut CcxCap<Self>, value: u8);
 
     /// Updates the flags field in [CcxCap::cr_pesbt]
-    /// 
+    ///
     /// Counterpart: [Self::get_flags]
     fn update_flags(cap: &mut CcxCap<Self>, value: u8);
 
@@ -164,53 +164,59 @@ pub trait CompressedCapability: Sized + Copy + Clone {
     /// Sets the capability bounds to bounds that encompass ((cursor), (cursor+req_len)).
     /// Because a floating-point representation is used for bounds, it may not be able to set (req_base, req_top) exactly.
     /// In this case it will return False.
-    /// 
+    ///
     /// Updates [CcxCap::cr_pesbt], [CcxCap::_cr_top], [CcxCap::cr_base]
     fn set_bounds(cap: &mut CcxCap<Self>, req_len: Self::Length) -> bool;
-    
+
     /// Check if the range ([CcxCap::cr_base], [CcxCap::_cr_top]) can be encoded exactly with the floating-point encoding
     fn is_representable_cap_exact(cap: &CcxCap<Self>) -> bool;
 
-    /// Check if a capability with the parameters `sealed, base, length, cursor` would be representable if the cursor were updated to `new_cursor`. 
-    fn is_representable_new_addr(sealed: bool, base: Self::Addr, length: Self::Length, cursor: Self::Addr, new_cursor: Self::Addr) -> bool;
+    /// Check if a capability with the parameters `sealed, base, length, cursor` would be representable if the cursor were updated to `new_cursor`.
+    fn is_representable_new_addr(
+        sealed: bool,
+        base: Self::Addr,
+        length: Self::Length,
+        cursor: Self::Addr,
+        new_cursor: Self::Addr,
+    ) -> bool;
 
     /// Generate a capability for `base, top, cursor` with the maximum available permissions.
     /// Panics if the bounds are not exactly representable
     fn make_max_perms_cap(base: Self::Addr, cursor: Self::Addr, top: Self::Length) -> CcxCap<Self>;
 
     /// Get the minimum representable length greater than or equal to `length`.
-    /// 
+    ///
     /// If `get_representable_length(l) == l` then bounds of length `l` are exactly representable (if properly aligned).
-    /// 
+    ///
     /// See also [Self::get_required_alignment], [Self::get_alignment_mask].
     fn get_representable_length(length: Self::Length) -> Self::Length;
 
     /// Get the alignment required for bounds of some `length` to be exactly represented.
-    /// 
+    ///
     /// See also [Self::get_representable_length], [Self::get_alignment_mask].
     fn get_required_alignment(length: Self::Length) -> Self::Length;
 
     /// Get a mask which aligns a bounds of some `length` to be exactly representable.
-    /// 
+    ///
     /// See also [Self::get_representable_length], [Self::get_required_alignment].
     fn get_alignment_mask(length: Self::Length) -> Self::Length;
 }
 
 #[repr(C, align(16))]
-#[derive(Copy,Clone)]
+#[derive(Copy, Clone)]
 /// Structure matching the C type `_cc_N(cap)`.
 /// Field order and layout is binary-compatible with the C version,
 /// assuming the C preprocessor macro `_CC_REVERSE_PESBT_CURSOR_ORDER` is *not* defined.
-/// 
+///
 /// This is a plain-old-data type. It only supplies getters and setters, and does *not* guarantee any safety/correctness.
 /// For example, there are no added assertions or checks if you set the cursor to a value outside the bounds.
 /// However, the C FFI functions from [CompressedCapability] may have their own asserts.
 /// These are documented where possible.
-/// 
+///
 /// *For a safe interface, use one of the [crate::wrappers]*
 pub struct CcxCap<T: CompressedCapability> {
     /// The bottom half of the capability as stored in memory.
-    /// 
+    ///
     /// If [Self::cr_tag] is 1, this is the capability's "cursor" i.e. the address it's actually pointing to.
     _cr_cursor: T::Addr,
 
@@ -230,7 +236,7 @@ pub struct CcxCap<T: CompressedCapability> {
     /// Tag - if 1, this is a valid capability, 0 it's just plain data
     cr_tag: u8,
     /// 0 (false) if the bounds decode step was given an invalid capability.
-    /// Should be 1 (true) for all non-Morello capabilities. 
+    /// Should be 1 (true) for all non-Morello capabilities.
     cr_bounds_valid: u8,
     /// The exponent used for storing the bounds.
     /// Stored from various places, only used in Morello-exclusive function cap_bounds_uses_value().
@@ -242,9 +248,9 @@ pub struct CcxCap<T: CompressedCapability> {
 
 /// Implements getters and setters similar to the C++-only member functions in the header.
 impl<T: CompressedCapability> CcxCap<T> {
-    /// Returns a `(tag, [cursor, pesbt])` tuple that represents all data required to 
+    /// Returns a `(tag, [cursor, pesbt])` tuple that represents all data required to
     /// store a capability in a register.
-    /// 
+    ///
     /// To store capabilities in memory, see [Self::mem_representation]
     pub fn reg_representation(&self) -> (bool, [T::Addr; 2]) {
         // This should be equal to self.cr_pesbt, the compress_raw function just returns that.
@@ -253,9 +259,9 @@ impl<T: CompressedCapability> CcxCap<T> {
         (self.tag(), [self._cr_cursor, compressed_pesbt])
     }
 
-    /// Returns a `(tag, [cursor, pesbt])` tuple that represents all data required to 
+    /// Returns a `(tag, [cursor, pesbt])` tuple that represents all data required to
     /// store a capability in memory.
-    /// 
+    ///
     /// To store capabilities in a register, see [Self::reg_representation]
     pub fn mem_representation(&self) -> (bool, [T::Addr; 2]) {
         // This should be equal to (self.cr_pesbt ^ SOME_XOR_MASK)
@@ -361,15 +367,21 @@ impl<T: CompressedCapability> CcxCap<T> {
     /// on this capability.
     /// Assertions are present in the C code, but should never be triggered.
     pub fn is_representable_with_new_addr(&self, new_addr: T::Addr) -> bool {
-        T::is_representable_new_addr(self.is_sealed(), self.base(), self.length(), self.address(), new_addr) 
+        T::is_representable_new_addr(
+            self.is_sealed(),
+            self.base(),
+            self.length(),
+            self.address(),
+            new_addr,
+        )
     }
 }
 /// Implements `operator==` from cheri_compressed_cap_common.h
 impl<T: CompressedCapability> PartialEq for CcxCap<T> {
     fn eq(&self, other: &Self) -> bool {
-        self.cr_tag == other.cr_tag && 
-        self._cr_cursor == other._cr_cursor && 
-        self.cr_pesbt == other.cr_pesbt
+        self.cr_tag == other.cr_tag
+            && self._cr_cursor == other._cr_cursor
+            && self.cr_pesbt == other.cr_pesbt
     }
 }
 impl<T: CompressedCapability> Eq for CcxCap<T> {}
@@ -378,7 +390,7 @@ impl<T: CompressedCapability> Eq for CcxCap<T> {}
 /// ccx_cap_t value;
 /// memset(&value, 0, sizeof(value));
 /// ```
-/// 
+///
 /// cc64.rs doesn't pick it up when it was automatically #[derive]-d, so it's manually implemented here
 impl<T: CompressedCapability> Default for CcxCap<T> {
     fn default() -> Self {
@@ -419,6 +431,7 @@ impl<T: CompressedCapability> Debug for CcxCap<T> {
 /// Structure matching the C type `_cc_N(bounds_bits)`.
 /// Represents a floating-point encoded capability bounds.
 #[repr(C)]
+#[derive(Debug, Clone, Copy)]
 pub struct CcxBoundsBits {
     pub b: u16,
     pub t: u16,
